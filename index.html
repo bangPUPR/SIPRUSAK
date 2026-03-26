@@ -402,50 +402,178 @@
     white-space: nowrap;
   }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-primary { background: var(--accent2); color: white; }
-  .btn-primary:hover:not(:disabled) { background: #1976d2; }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
-  .btn-secondary:hover:not(:disabled) { background: var(--border); }
-  .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
-  .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.2); }
-  .btn-success { background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
-  .btn-success:hover:not(:disabled) { background: rgba(16,185,129,0.2); }
+  .btn-primary { 
+    background: var(--accent-primary); 
+    color: white;
+    border: 1px solid var(--accent-primary);
+    box-shadow: 0 2px 8px rgba(14,165,233,0.3);
+  }
+  .btn-primary:hover:not(:disabled) { 
+    background: var(--accent-secondary);
+    border-color: var(--accent-secondary);
+    box-shadow: 0 4px 12px rgba(14,165,233,0.4);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active:not(:disabled) { transform: scale(0.97); }
+  
+  .btn-secondary { 
+    background: var(--bg-elevated); 
+    color: var(--text-secondary); 
+    border: 1px solid var(--border-default); 
+  }
+  .btn-secondary:hover:not(:disabled) { 
+    background: var(--bg-hover); 
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+  
+  .btn-danger { 
+    background: rgba(239,68,68,0.1); 
+    color: var(--status-berat); 
+    border: 1px solid rgba(239,68,68,0.3); 
+  }
+  .btn-danger:hover:not(:disabled) { 
+    background: rgba(239,68,68,0.2); 
+    border-color: rgba(239,68,68,0.5);
+  }
+  .btn-success { 
+    background: rgba(34,197,94,0.1); 
+    color: var(--status-ringan); 
+    border: 1px solid rgba(34,197,94,0.3); 
+  }
+  .btn-success:hover:not(:disabled) { 
+    background: rgba(34,197,94,0.2);
+    border-color: rgba(34,197,94,0.5);
+  }
   .btn-sm { padding: 5px 10px; font-size: 12px; }
-  .btn-icon { padding: 7px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all 0.15s; }
-  .btn-icon:hover { color: var(--text); border-color: var(--border2); }
+  .btn-icon { 
+    padding: 8px; border-radius: 6px; 
+    background: var(--bg-elevated); 
+    border: 1px solid var(--border-default); 
+    color: var(--text-secondary); 
+    cursor: pointer; 
+    transition: all 0.15s ease; 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-icon:hover { 
+    color: var(--text-primary); 
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+  }
+  .btn-icon:active { transform: scale(0.95); }
 
-  /* Forms */
+  /* Industrial Forms */
   .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .form-group { display: flex; flex-direction: column; gap: 6px; }
   .form-group.full { grid-column: 1 / -1; }
-  label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); }
-  input, select, textarea {
-    background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
-    padding: 9px 12px; color: var(--text); font-size: 13px; font-family: var(--font);
-    transition: border-color 0.15s; outline: none; width: 100%;
+  label { 
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em; 
+    text-transform: uppercase; color: var(--text-muted);
+    font-family: var(--mono);
   }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
-  input::placeholder { color: var(--text3); }
+  input, select, textarea {
+    background: var(--bg-elevated); 
+    border: 1px solid var(--border-default); 
+    border-radius: 6px;
+    padding: 10px 14px; 
+    color: var(--text-primary); 
+    font-size: 13px; 
+    font-family: var(--font);
+    transition: all 0.15s ease; 
+    outline: none; 
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { 
+    border-color: var(--accent-primary); 
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  input::placeholder { color: var(--text-muted); }
   textarea { resize: vertical; min-height: 80px; }
-  select option { background: var(--surface2); }
+  select option { background: var(--bg-elevated); color: var(--text-primary); }
+  
+  /* Input with mono for numbers */
+  input[type="number"], input.percent, input[data-numeric] {
+    font-family: var(--mono);
+  }
 
-  /* Progress bar */
-  .progress-bar { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
-  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
-  .progress-fill.ringan { background: var(--ringan); }
-  .progress-fill.sedang { background: linear-gradient(90deg, var(--ringan), var(--warning)); }
-  .progress-fill.berat { background: linear-gradient(90deg, var(--warning), var(--danger)); }
+  /* Industrial Progress Bars */
+  .progress-bar { 
+    background: var(--bg-elevated); 
+    border-radius: 4px; 
+    height: 6px; 
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .progress-fill { 
+    height: 100%; 
+    border-radius: 4px; 
+    transition: width 0.5s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 2s infinite;
+  }
+  .progress-fill.ringan { background: linear-gradient(90deg, var(--status-ringan), #4ade80); }
+  .progress-fill.sedang { background: linear-gradient(90deg, var(--status-sedang), #fbbf24); }
+  .progress-fill.berat { background: linear-gradient(90deg, var(--status-berat), #f87171); }
 
-  /* Komponen Assessment Table */
-  .assessment-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  /* Industrial Assessment Table */
+  .assessment-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 12px;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    overflow: hidden;
+  }
   .assessment-table th {
-    background: var(--surface2); padding: 8px 10px; text-align: center;
-    font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--text3); border: 1px solid var(--border); white-space: nowrap;
+    background: var(--bg-elevated); 
+    padding: 10px 12px; 
+    text-align: center;
+    font-size: 9px; font-weight: 600; 
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-muted); 
+    border: 1px solid var(--border-default); 
+    white-space: nowrap;
+    font-family: var(--mono);
   }
   .assessment-table td {
-    padding: 6px 10px; border: 1px solid var(--border); color: var(--text2); vertical-align: middle;
+    padding: 8px 12px; 
+    border: 1px solid var(--border-subtle); 
+    color: var(--text-secondary); 
+    vertical-align: middle;
+    transition: all 0.1s ease;
+  }
+  .assessment-table tr:hover td {
+    background: var(--bg-hover);
+  }
+  .assessment-table td.numeric {
+    font-family: var(--mono);
+    text-align: right;
+    color: var(--text-primary);
+  }
+  .assessment-table td input {
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    text-align: right;
+    font-family: var(--mono);
+    width: 100%;
+  }
+  .assessment-table td input:focus {
+    background: var(--bg-elevated);
+    border-radius: 4px;
+    box-shadow: none;
+  }
+  .assessment-table tr.flash-update td {
+    animation: flash-highlight 0.3s ease-out;
   }
   .assessment-table tr:hover td { background: rgba(255,255,255,0.02); }
   .assessment-table .sistem-row td {
@@ -2228,6 +2356,7 @@ function SurveyDetail({ survey: initialSurvey, onBack, onUpdate, onHasChanges })
 
   const tabs = [
     { key: 'penilaian', label: '📋 Form Penilaian' },
+    { key: 'foto', label: '📷 Foto Lapangan' },
     { key: 'info', label: 'ℹ Info Bangunan' },
     { key: 'workflow', label: '🔄 Workflow' },
     { key: 'ttd', label: '✍ Tanda Tangan' },
@@ -2382,10 +2511,324 @@ function SurveyDetail({ survey: initialSurvey, onBack, onUpdate, onHasChanges })
         <TTDPanel survey={survey} onUpdate={(data) => setSurvey(prev => ({...prev, ...data}))} />
       )}
 
+      {activeTab === 'foto' && (
+        <FotoGalleryPanel survey={survey} />
+      )}
+
       {/* AI Insights Panel */}
       {activeTab === 'penilaian' && !loading && (
         <AIInsightsPanel survey={survey} komponenList={komponen} />
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// PANEL FOTO GALLERY — Kelola Foto Lapangan
+// ============================================================
+function FotoGalleryPanel({ survey }) {
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedKomponen, setSelectedKomponen] = useState('');
+  const [showCamera, setShowCamera] = useState(false);
+  const { addToast } = useApp();
+
+  // Load existing photos from localStorage or Supabase
+  useEffect(() => {
+    loadPhotos();
+  }, [survey.id]);
+
+  const loadPhotos = async () => {
+    setLoading(true);
+    // Try localStorage first
+    const saved = localStorage.getItem(`siprusak_photos_${survey.id}`);
+    if (saved) {
+      setPhotos(JSON.parse(saved));
+    }
+    
+    // If Supabase is configured, try to load from there
+    if (!IS_DEMO_MODE && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('survey_photos')
+          .select('*')
+          .eq('survey_id', survey.id)
+          .order('created_at', { ascending: false });
+        
+        if (!error && data) {
+          setPhotos(data);
+          localStorage.setItem(`siprusak_photos_${survey.id}`, JSON.stringify(data));
+        }
+      } catch (err) {
+        console.log('Using localStorage for photos');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handlePhotoCapture = (imageData) => {
+    const newPhoto = {
+      id: Date.now().toString(),
+      survey_id: survey.id,
+      dataUrl: imageData,
+      komponen_nama: selectedKomponen || 'Umum',
+      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      synced: false
+    };
+    
+    const updated = [newPhoto, ...photos];
+    setPhotos(updated);
+    localStorage.setItem(`siprusak_photos_${survey.id}`, JSON.stringify(updated));
+    setShowCamera(false);
+    addToast('Foto berhasil disimpan', 'success');
+    
+    // Try to sync to Supabase
+    if (!IS_DEMO_MODE && supabase) {
+      syncPhotoToSupabase(newPhoto);
+    }
+  };
+
+  const syncPhotoToSupabase = async (photo) => {
+    try {
+      // Upload image to storage
+      const fileName = `${survey.id}/${photo.id}.jpg`;
+      const blob = await (await fetch(photo.dataUrl)).blob();
+      
+      const { error: uploadError } = await supabase.storage
+        .from('survey-photos')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('survey-photos')
+        .getPublicUrl(fileName);
+      
+      // Save metadata to database
+      const { error: dbError } = await supabase.from('survey_photos').insert({
+        survey_id: survey.id,
+        storage_path: fileName,
+        public_url: publicUrl,
+        komponen_nama: photo.komponen_nama,
+        timestamp: photo.timestamp,
+        synced: true
+      });
+      
+      if (!dbError) {
+        addToast('Foto tersinkron ke cloud', 'success');
+      }
+    } catch (err) {
+      console.warn('Sync failed:', err.message);
+    }
+  };
+
+  const handleDeletePhoto = async (photoId) => {
+    if (!confirm('Yakin ingin menghapus foto ini?')) return;
+    
+    const updated = photos.filter(p => p.id !== photoId);
+    setPhotos(updated);
+    localStorage.setItem(`siprusak_photos_${survey.id}`, JSON.stringify(updated));
+    
+    // Delete from Supabase if exists
+    if (!IS_DEMO_MODE && supabase) {
+      try {
+        await supabase.from('survey_photos').delete().eq('id', photoId);
+        await supabase.storage.from('survey-photos').remove([`${survey.id}/${photoId}.jpg`]);
+      } catch (err) {
+        console.warn('Delete from cloud failed:', err.message);
+      }
+    }
+    
+    addToast('Foto dihapus', 'info');
+  };
+
+  const handleDownloadPhoto = (photo) => {
+    const link = document.createElement('a');
+    link.href = photo.dataUrl;
+    link.download = `SIPRUSAK_${survey.nama_bangunan}_${photo.komponen_nama}_${photo.id}.jpg`;
+    link.click();
+  };
+
+  const komponenOptions = [
+    'Umum',
+    'Pondasi & Sloof',
+    'Kolom',
+    'Balok',
+    'Plat Lantai',
+    'Tangga',
+    'Atap',
+    'Dinding',
+    'Pintu',
+    'Jendela',
+    'Lainnya'
+  ];
+
+  if (showCamera) {
+    return (
+      <div className="card">
+        <div className="card-header">
+          <span>📷 Ambil Foto — {selectedKomponen || 'Umum'}</span>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowCamera(false)}>
+            ✕ Tutup
+          </button>
+        </div>
+        <FotoLapangan 
+          onCapture={handlePhotoCapture}
+          komponenNama={selectedKomponen || 'Umum'}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Photo Upload Section */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header">
+          <span>📷 Tambah Foto Lapangan</span>
+        </div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label>Komponen Bangunan</label>
+            <select 
+              value={selectedKomponen} 
+              onChange={(e) => setSelectedKomponen(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="">Pilih Komponen...</option>
+              {komponenOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCamera(true)}
+          >
+            📷 Buka Kamera
+          </button>
+        </div>
+      </div>
+
+      {/* Photo Gallery */}
+      <div className="card">
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>🖼️ Gallery Foto ({photos.length})</span>
+          {photos.length > 0 && (
+            <button 
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                if (confirm('Yakin ingin menghapus semua foto?')) {
+                  setPhotos([]);
+                  localStorage.removeItem(`siprusak_photos_${survey.id}`);
+                }
+              }}
+            >
+              🗑️ Hapus Semua
+            </button>
+          )}
+        </div>
+        
+        {loading ? (
+          <div className="loading"><div className="spinner"/></div>
+        ) : photos.length === 0 ? (
+          <div className="empty-state" style={{ padding: 40 }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>📷</div>
+            <p>Belum ada foto lapangan</p>
+            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 8 }}>
+              Tambahkan foto untuk dokumentasi kondisi bangunan
+            </p>
+          </div>
+        ) : (
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+            gap: 16 
+          }}>
+            {photos.map(photo => (
+              <div 
+                key={photo.id} 
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
+                }}
+                className="photo-card"
+              >
+                <img 
+                  src={photo.dataUrl || photo.public_url} 
+                  alt={photo.komponen_nama}
+                  style={{ width: '100%', height: 150, objectFit: 'cover', cursor: 'pointer' }}
+                  onClick={() => window.open(photo.dataUrl || photo.public_url, '_blank')}
+                />
+                <div style={{ padding: 12 }}>
+                  <div style={{ 
+                    fontSize: 11, 
+                    fontWeight: 600, 
+                    color: 'var(--accent-secondary)',
+                    fontFamily: 'var(--mono)',
+                    marginBottom: 4
+                  }}>
+                    {photo.komponen_nama}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    {new Date(photo.timestamp).toLocaleString('id-ID')}
+                  </div>
+                  {photo.synced && (
+                    <div style={{ 
+                      fontSize: 9, 
+                      color: 'var(--status-ringan)', 
+                      marginTop: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <span>✓</span> Tersinkron
+                    </div>
+                  )}
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: 8, 
+                  padding: '0 12px 12px'
+                }}>
+                  <button 
+                    className="btn btn-secondary btn-sm"
+                    style={{ flex: 1, fontSize: 10 }}
+                    onClick={() => handleDownloadPhoto(photo)}
+                  >
+                    ⬇ Download
+                  </button>
+                  <button 
+                    className="btn btn-danger btn-sm"
+                    style={{ fontSize: 10 }}
+                    onClick={() => handleDeletePhoto(photo.id)}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Tips Card */}
+      <div className="card" style={{ marginTop: 20 }}>
+        <div className="card-header">💡 Tips Foto Lapangan</div>
+        <ul style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8, paddingLeft: 20 }}>
+          <li>Ambil foto dari sudut yang menunjukkan kerusakan dengan jelas</li>
+          <li>Pastikan pencahayaan cukup (gunakan flash jika diperlukan)</li>
+          <li>Sertakan objek referensi untuk skala (misal: tangan, penggaris)</li>
+          <li>Foto dokumentasi minimal: depan, samping, detail kerusakan</li>
+          <li>Setiap foto akan otomatis diberi timestamp dan watermark</li>
+        </ul>
+      </div>
     </div>
   );
 }
@@ -2909,9 +3352,9 @@ function AIInsightsPanel({ survey, komponenList }) {
 // ============================================================
 
 // CONFIGURATION — Ganti dengan API key Anda
-const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // Dapatkan di: https://aistudio.google.com/app/apikey
-const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY'; // Dapatkan di: https://platform.openai.com/api-keys
-const GEMINI_MODEL = 'gemini-2.0-flash-exp';
+const GEMINI_API_KEY = 'AIzaSyCBsA4wxPVbhLCwJh0Kosg2tt0waOhBDAw'; // Dapatkan di: https://aistudio.google.com/app/apikey
+const OPENAI_API_KEY = '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'; // Dapatkan di: https://platform.openai.com/api-keys
+const GEMINI_MODEL = 'deep-research-pro-preview-12-2025';
 const OPENAI_MODEL = 'gpt-4o-mini';
 
 // SYSTEM PROMPT — AI Asisten KemenPU
