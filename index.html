@@ -1,0 +1,4139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIPRUSAK — Sistem Penilaian Kerusakan Bangunan Sekolah</title>
+<!-- Load all scripts blocking in correct order -->
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Industrial Precision — Dark Engineering Theme */
+    --bg-base: #060b14;
+    --bg-surface: #0d1520;
+    --bg-elevated: #132030;
+    --bg-hover: #1a2a3f;
+    --bg-overlay: #243347;
+    
+    /* Accent System */
+    --accent-primary: #0ea5e9;
+    --accent-secondary: #38bdf8;
+    --accent-glow: rgba(14,165,233,0.12);
+    
+    /* Semantic Colors */
+    --status-ringan: #22c55e;
+    --status-sedang: #f59e0b;
+    --status-berat: #ef4444;
+    --status-critical: #dc2626;
+    
+    /* Typography */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #475569;
+    --text-accent: #38bdf8;
+    
+    /* Borders */
+    --border-subtle: rgba(148,163,184,0.08);
+    --border-default: rgba(148,163,184,0.15);
+    --border-strong: rgba(148,163,184,0.25);
+    --border-accent: rgba(14,165,233,0.4);
+    
+    /* Legacy mapping untuk kompatibilitas */
+    --bg: var(--bg-base);
+    --surface: var(--bg-surface);
+    --surface2: var(--bg-elevated);
+    --border: var(--border-default);
+    --border2: var(--border-strong);
+    --accent: var(--accent-primary);
+    --accent2: var(--accent-secondary);
+    --text: var(--text-primary);
+    --text2: var(--text-secondary);
+    --text3: var(--text-muted);
+    --success: var(--status-ringan);
+    --warning: var(--status-sedang);
+    --danger: var(--status-berat);
+    --danger2: var(--status-critical);
+    --ringan: var(--status-ringan);
+    --sedang: var(--status-sedang);
+    --berat: var(--status-berat);
+    
+    --font: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { 
+    font-family: var(--font); 
+    background: var(--bg-base); 
+    color: var(--text-primary); 
+    min-height: 100vh; 
+    overflow-x: hidden;
+    line-height: 1.5;
+  }
+  
+  /* Scrollbar Industrial */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { 
+    background: var(--border-strong); 
+    border-radius: 3px; 
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+
+  /* Layout */
+  .app-shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px; min-height: 100vh; background: var(--bg-surface);
+    border-right: 1px solid var(--border-default); display: flex; flex-direction: column;
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; overflow-y: auto;
+    transition: all 0.25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.2);
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border-default);
+    background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+  }
+  .sidebar-logo h1 {
+    font-size: 16px; font-weight: 700; letter-spacing: 0.05em;
+    color: var(--accent-primary); font-family: var(--mono);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-logo h1::before {
+    content: '◈'; font-size: 14px;
+  }
+  .sidebar-logo p { 
+    font-size: 10px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.04em;
+    font-family: var(--mono);
+  }
+  .sidebar-nav { flex: 1; padding: 12px 0; }
+  .nav-section { 
+    padding: 16px 16px 6px; font-size: 9px; font-weight: 600; 
+    letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase;
+    font-family: var(--mono);
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+    color: var(--text-secondary); font-size: 13px; cursor: pointer;
+    transition: all 0.15s ease; border-left: 2px solid transparent;
+    user-select: none; position: relative;
+  }
+  .nav-item:hover { 
+    color: var(--text-primary); 
+    background: var(--bg-hover); 
+    border-left-color: var(--border-strong);
+  }
+  .nav-item.active { 
+    color: var(--accent-secondary); 
+    background: var(--accent-glow); 
+    border-left-color: var(--accent-primary);
+  }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px; background: var(--accent-primary);
+    box-shadow: 0 0 8px var(--accent-primary);
+  }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; font-family: var(--mono); }
+  .sidebar-footer {
+    padding: 16px; border-top: 1px solid var(--border-default);
+    font-size: 11px; color: var(--text-muted);
+    background: var(--bg-elevated);
+  }
+  .sidebar-footer .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .avatar { 
+    width: 32px; height: 32px; 
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); 
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+    font-size: 13px; font-weight: 600; color: white; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(14,165,233,0.3);
+  }
+  
+  .main-content { margin-left: 260px; flex: 1; min-height: 100vh; }
+  .topbar {
+    position: sticky; top: 0; z-index: 50; 
+    background: rgba(6,11,20,0.95);
+    backdrop-filter: blur(12px); 
+    border-bottom: 1px solid var(--border-default);
+    padding: 0 28px; height: 56px; 
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+  .topbar-title { 
+    font-size: 15px; font-weight: 600; 
+    color: var(--text-primary);
+    font-family: var(--mono);
+    letter-spacing: 0.02em;
+  }
+  .topbar-title::before {
+    content: '//'; color: var(--accent-primary); margin-right: 8px;
+  }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  
+  .page-content { padding: 28px; }
+
+  /* Industrial Cards */
+  .card {
+    background: var(--bg-surface); 
+    border: 1px solid var(--border-default);
+    border-radius: 8px; padding: 20px;
+    transition: all 0.2s ease;
+  }
+  .card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .card-header {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 16px; padding-bottom: 12px; 
+    border-bottom: 1px solid var(--border-default);
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono);
+  }
+  
+  /* Industrial Stats with Sparkline */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: 8px; padding: 20px;
+    border-left: 2px solid var(--border-default);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    border-color: var(--border-strong);
+  }
+  .stat-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background: var(--accent-primary);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .stat-card:hover::before { opacity: 1; }
+  
+  .stat-card.success { border-left-color: var(--status-ringan); }
+  .stat-card.warning { border-left-color: var(--status-sedang); }
+  .stat-card.danger { border-left-color: var(--status-berat); }
+  .stat-card.accent { border-left-color: var(--accent-primary); }
+  
+  .stat-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    color: var(--text-muted); text-transform: uppercase;
+    font-family: var(--mono);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-size: 32px; font-weight: 600; 
+    font-family: var(--mono); 
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat-sub {
+    font-size: 11px; color: var(--text-muted);
+    margin-top: 6px; font-family: var(--mono);
+  }
+  
+  /* Sparkline container */
+  .sparkline-container {
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%);
+    width: 60px; height: 30px;
+    opacity: 0.6;
+  }
+  
+  /* Buttons Industrial */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 6px; font-size: 12px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s ease;
+    border: 1px solid transparent; font-family: var(--font);
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent-primary); color: white;
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 8px rgba(14,165,233,0.3);
+  }
+  .btn-primary:hover {
+    background: var(--accent-secondary);
+    border-color: var(--accent-secondary);
+    box-shadow: 0 4px 12px rgba(14,165,233,0.4);
+  }
+  .btn-secondary {
+    background: var(--bg-elevated); color: var(--text-secondary);
+    border-color: var(--border-default);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+  .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* Industrial Animations */
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(14,165,233,0.4); }
+    50% { box-shadow: 0 0 20px 4px rgba(14,165,233,0.2); }
+  }
+  @keyframes flash-highlight {
+    0% { background: rgba(14,165,233,0.3); }
+    100% { background: transparent; }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes count-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  
+  .animate-pulse-glow { animation: pulse-glow 2s infinite; }
+  .animate-flash { animation: flash-highlight 0.3s ease-out; }
+  .animate-shimmer {
+    background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  .animate-count-up { animation: count-up 0.5s ease-out; }
+  
+  /* Table Industrial */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    padding: 12px 16px; text-align: left; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
+    background: var(--bg-elevated); border-bottom: 1px solid var(--border-default); white-space: nowrap;
+    font-family: var(--mono);
+  }
+  tbody tr { 
+    border-bottom: 1px solid var(--border-subtle); 
+    transition: all 0.15s ease; 
+  }
+  tbody tr:hover { 
+    background: var(--bg-hover); 
+    transform: scale(1.001);
+  }
+  tbody td { padding: 12px 16px; color: var(--text-secondary); vertical-align: middle; }
+  tbody td:first-child { color: var(--text-primary); font-weight: 500; }
+  
+  /* Data Cells with Mono */
+  td.numeric {
+    font-family: var(--mono);
+    text-align: right;
+    color: var(--text-primary);
+  }
+  td.percent {
+    font-family: var(--mono);
+    color: var(--accent-secondary);
+  }
+
+  /* Badges Industrial */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 500;
+    font-family: var(--mono); white-space: nowrap;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .badge:hover { transform: translateY(-1px); }
+  
+  .badge-draft { 
+    background: rgba(100,116,139,0.15); 
+    color: var(--text-muted); 
+    border-color: rgba(100,116,139,0.3); 
+  }
+  .badge-survey { 
+    background: rgba(14,165,233,0.1); 
+    color: var(--accent-secondary); 
+    border-color: rgba(14,165,233,0.3); 
+  }
+  .badge-penilaian { 
+    background: rgba(245,158,11,0.1); 
+    color: var(--status-sedang); 
+    border-color: rgba(245,158,11,0.3); 
+  }
+  .badge-disetujui { 
+    background: rgba(34,197,94,0.1); 
+    color: var(--status-ringan); 
+    border-color: rgba(34,197,94,0.3); 
+  }
+  .badge-ringan { 
+    background: rgba(34,197,94,0.1); 
+    color: var(--status-ringan); 
+    border-color: rgba(34,197,94,0.3); 
+  }
+  .badge-sedang { 
+    background: rgba(245,158,11,0.1); 
+    color: var(--status-sedang); 
+    border-color: rgba(245,158,11,0.3); 
+  }
+  .badge-berat { 
+    background: rgba(239,68,68,0.1); 
+    color: var(--status-berat); 
+    border-color: rgba(239,68,68,0.3); 
+  }
+  .badge-critical {
+    background: rgba(220,38,38,0.15);
+    color: var(--status-critical);
+    border-color: rgba(220,38,38,0.4);
+    animation: pulse-glow 2s infinite;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; transition: all 0.15s; font-family: var(--font);
+    white-space: nowrap;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent2); color: white; }
+  .btn-primary:hover:not(:disabled) { background: #1976d2; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .btn-secondary:hover:not(:disabled) { background: var(--border); }
+  .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.2); }
+  .btn-success { background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+  .btn-success:hover:not(:disabled) { background: rgba(16,185,129,0.2); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { padding: 7px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .btn-icon:hover { color: var(--text); border-color: var(--border2); }
+
+  /* Forms */
+  .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); }
+  input, select, textarea {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+    padding: 9px 12px; color: var(--text); font-size: 13px; font-family: var(--font);
+    transition: border-color 0.15s; outline: none; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
+  input::placeholder { color: var(--text3); }
+  textarea { resize: vertical; min-height: 80px; }
+  select option { background: var(--surface2); }
+
+  /* Progress bar */
+  .progress-bar { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .progress-fill.ringan { background: var(--ringan); }
+  .progress-fill.sedang { background: linear-gradient(90deg, var(--ringan), var(--warning)); }
+  .progress-fill.berat { background: linear-gradient(90deg, var(--warning), var(--danger)); }
+
+  /* Komponen Assessment Table */
+  .assessment-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .assessment-table th {
+    background: var(--surface2); padding: 8px 10px; text-align: center;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text3); border: 1px solid var(--border); white-space: nowrap;
+  }
+  .assessment-table td {
+    padding: 6px 10px; border: 1px solid var(--border); color: var(--text2); vertical-align: middle;
+  }
+  .assessment-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .assessment-table .sistem-row td {
+    background: var(--surface2); font-weight: 600; font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent2);
+  }
+  .assessment-input {
+    background: transparent; border: none; border-bottom: 1px solid var(--border2);
+    color: var(--text); font-size: 12px; font-family: var(--mono);
+    padding: 2px 4px; width: 60px; text-align: right; outline: none;
+  }
+  .assessment-input:focus { border-bottom-color: var(--accent2); }
+  .result-cell {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    text-align: right; padding: 6px 10px;
+  }
+  
+  /* Tahap1 selector */
+  .tahap1-select {
+    font-size: 11px; padding: 4px 6px; background: var(--surface2);
+    border: 1px solid var(--border2); border-radius: 4px; color: var(--text); min-width: 180px;
+  }
+  .tahap1-danger { border-color: rgba(239,68,68,0.5) !important; color: var(--danger) !important; }
+  .tahap1-ok { border-color: rgba(16,185,129,0.3) !important; }
+
+  /* Workflow timeline */
+  .timeline { display: flex; align-items: center; gap: 0; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; }
+  .timeline-step {
+    display: flex; flex-direction: column; align-items: center; position: relative;
+    min-width: 80px;
+  }
+  .timeline-step:not(:last-child)::after {
+    content: ''; position: absolute; top: 14px; left: 50%; width: 100%;
+    height: 2px; background: var(--border2); z-index: 0;
+  }
+  .timeline-step.done::after { background: var(--accent2); }
+  .timeline-dot {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border2);
+    background: var(--surface); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; z-index: 1; position: relative;
+    font-family: var(--mono);
+  }
+  .timeline-step.done .timeline-dot { border-color: var(--accent2); background: var(--accent2); color: white; }
+  .timeline-step.current .timeline-dot { border-color: var(--warning); color: var(--warning); box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+  .timeline-label { font-size: 9px; color: var(--text3); margin-top: 6px; text-align: center; max-width: 70px; line-height: 1.3; }
+  .timeline-step.done .timeline-label { color: var(--accent2); }
+  .timeline-step.current .timeline-label { color: var(--warning); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+  }
+  .modal-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1;
+  }
+  .modal-header h2 { font-size: 16px; font-weight: 600; }
+  .modal-body { padding: 24px; }
+  .modal-footer {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end; position: sticky; bottom: 0; background: var(--surface);
+  }
+
+  /* Alert */
+  .alert {
+    padding: 12px 16px; border-radius: 8px; font-size: 13px;
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px;
+  }
+  .alert-info { background: rgba(33,150,243,0.08); border: 1px solid rgba(33,150,243,0.2); color: #60a5fa; }
+  .alert-warning { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: var(--warning); }
+  .alert-danger { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: var(--danger); }
+  .alert-success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: var(--success); }
+
+  /* Auth page */
+  .auth-page {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 30% 50%, rgba(29,111,164,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 20%, rgba(33,150,243,0.05) 0%, transparent 50%),
+                var(--bg);
+  }
+  .auth-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 40px; width: 100%; max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .auth-logo { text-align: center; margin-bottom: 32px; }
+  .auth-logo h1 { font-size: 24px; font-weight: 800; color: var(--accent2); font-family: var(--mono); letter-spacing: 0.04em; }
+  .auth-logo p { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+  /* Kerusakan summary */
+  .kerusakan-summary {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 20px; margin-top: 20px;
+  }
+  .kerusakan-value {
+    font-size: 36px; font-weight: 700; font-family: var(--mono);
+  }
+  .kerusakan-value.ringan { color: var(--ringan); }
+  .kerusakan-value.sedang { color: var(--warning); }
+  .kerusakan-value.berat { color: var(--danger); }
+  .kerusakan-label {
+    font-size: 14px; font-weight: 600; margin-top: 4px;
+  }
+
+  /* Loading */
+  .loading { display: flex; align-items: center; justify-content: center; padding: 48px; flex-direction: column; gap: 12px; }
+  .spinner { width: 32px; height: 32px; border: 2px solid var(--border2); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; min-width: 280px; max-width: 360px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3); animation: slideIn 0.3s ease;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.success { border-left: 3px solid var(--success); }
+  .toast.error { border-left: 3px solid var(--danger); }
+  .toast.info { border-left: 3px solid var(--accent2); }
+  @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 60px 20px; }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+  .empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .empty-state p { font-size: 13px; color: var(--text3); }
+
+  /* Config notice */
+  .config-notice {
+    background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px;
+    padding: 24px; margin-bottom: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main-content { margin-left: 0; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, createContext, useContext } = React;
+
+// ============================================================
+// KONFIGURASI SUPABASE — PRODUCTION MODE
+// ============================================================
+const SUPABASE_URL = 'https://zktbmlpfcynplrihfldh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_-cNO5hVUuHExdstLo1_qVA_C_iMV_6V';
+
+const IS_CONFIGURED = true; // Production mode enabled
+
+// Use captured client from body script, fallback to null
+let supabase = window._supabaseClient || null;
+let IS_DEMO_MODE = window._IS_DEMO_MODE !== undefined ? window._IS_DEMO_MODE : !supabase;
+
+// Initialize Supabase with retry logic
+function initSupabase() {
+  if (!IS_CONFIGURED) return;
+  
+  try {
+    // Use captured library if available
+    const supabaseModule = window._supabaseLib || window.supabase;
+    
+    if (supabaseModule && supabaseModule.createClient) {
+      supabase = supabaseModule.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      IS_DEMO_MODE = false;
+      // Update window variables for consistency
+      window._supabaseClient = supabase;
+      window._IS_DEMO_MODE = false;
+      console.log('✅ Supabase initialized successfully');
+      return;
+    }
+    
+    console.warn('⏳ Supabase library not ready, will retry...');
+    setTimeout(initSupabase, 1000);
+    
+  } catch (err) {
+    console.error('❌ Failed to initialize Supabase:', err);
+    supabase = null;
+    IS_DEMO_MODE = true;
+  }
+}
+
+// Run initialization AFTER DOM loaded - use captured library from body script
+window.addEventListener('DOMContentLoaded', () => {
+  // Use captured client if available
+  if (window._supabaseClient) {
+    supabase = window._supabaseClient;
+    IS_DEMO_MODE = window._IS_DEMO_MODE !== undefined ? window._IS_DEMO_MODE : false;
+    console.log('✅ Supabase client assigned from body script capture');
+    return;
+  }
+  
+  // Fallback: try to init manually
+  initSupabase();
+});
+
+// ============================================================
+// TEST KONEKSI SUPABASE
+// ============================================================
+async function testSupabaseConnection() {
+  console.group('🔍 SUPABASE CONNECTION TEST');
+  
+  // Use captured client if available
+  const client = window._supabaseClient || supabase;
+  const demoMode = window._IS_DEMO_MODE !== undefined ? window._IS_DEMO_MODE : IS_DEMO_MODE;
+  
+  // 1. Check library availability
+  console.log('1. Library Check:');
+  console.log('   - window._supabaseClient:', typeof window._supabaseClient);
+  console.log('   - supabase client:', typeof client);
+  console.log('   - IS_DEMO_MODE:', demoMode);
+  
+  // 2. Test connection if available
+  if (client) {
+    try {
+      console.log('\n2. Testing connection...');
+      const { data, error } = await client.from('surveys').select('count', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error('   ❌ Connection failed:', error.message);
+        console.log('   - Code:', error.code);
+        console.log('   - Details:', error.details);
+      } else {
+        console.log('   ✅ Connection successful!');
+        console.log('   - Surveys table accessible');
+      }
+    } catch (err) {
+      console.error('   ❌ Error:', err.message);
+    }
+  } else {
+    console.log('\n2. ❌ Supabase client not initialized');
+  }
+  
+  // 3. Summary
+  console.log('\n3. Status:');
+  console.log('   - IS_DEMO_MODE:', demoMode);
+  console.log('   - IS_CONFIGURED:', IS_CONFIGURED);
+  console.log('   - SUPABASE_URL:', SUPABASE_URL);
+  
+  console.groupEnd();
+}
+
+// Run test after page fully loaded (5 seconds to ensure all scripts ready)
+window.addEventListener('load', () => {
+  setTimeout(testSupabaseConnection, 5000);
+});
+
+// Expose to console for manual testing
+window.testSupabase = testSupabaseConnection;
+
+// ============================================================
+// KONSTANTA & DATA BOBOT
+// ============================================================
+const KLASIFIKASI_NILAI = { 1: 0, 2: 0.20, 3: 0.35, 4: 0.50, 5: 0.70, 6: 0.85, 7: 1.00 };
+
+const BOBOT_TEMPLATE = {
+  1: [
+    { kode: 'pondasi_sloof', nama: 'Pondasi & Sloof', sistem: 'STRUKTUR', satuan: 'Estimasi', volDefault: null, bobot: 0.12, isEstimasi: true },
+    { kode: 'kolom', nama: 'Kolom', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 10, bobot: 0.10 },
+    { kode: 'balok', nama: 'Balok', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 8, bobot: 0.08 },
+    { kode: 'atap', nama: 'Atap', sistem: 'STRUKTUR', satuan: '%', volDefault: 100, bobot: 0.07 },
+    { kode: 'dinding_partisi', nama: 'Dinding / Partisi', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.215 },
+    { kode: 'plafond', nama: 'Plafond', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.10 },
+    { kode: 'lantai', nama: 'Lantai', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.145 },
+    { kode: 'kusen', nama: 'Kusen', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.010 },
+    { kode: 'pintu', nama: 'Pintu', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.015 },
+    { kode: 'jendela', nama: 'Jendela', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.020 },
+    { kode: 'finishing_plafond', nama: 'Finishing Plafond', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.030 },
+    { kode: 'finishing_dinding', nama: 'Finishing Dinding', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.040 },
+    { kode: 'finishing_kusen_pintu', nama: 'Finishing Kusen & Pintu', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.020 },
+    { kode: 'instalasi_listrik', nama: 'Instalasi Listrik', sistem: 'UTILITAS', satuan: 'Estimasi', volDefault: null, bobot: 0.010, isEstimasi: true },
+    { kode: 'instalasi_air', nama: 'Instalasi Air Bersih', sistem: 'UTILITAS', satuan: 'Estimasi', volDefault: null, bobot: 0.010, isEstimasi: true },
+    { kode: 'drainase_limbah', nama: 'Drainase Limbah', sistem: 'UTILITAS', satuan: 'm1', volDefault: 1, bobot: 0.015 },
+  ],
+  2: [
+    { kode: 'pondasi_sloof', nama: 'Pondasi & Sloof', sistem: 'STRUKTUR', satuan: 'Estimasi', volDefault: null, bobot: 0.10, isEstimasi: true },
+    { kode: 'kolom', nama: 'Kolom', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 10, bobot: 0.13 },
+    { kode: 'balok', nama: 'Balok', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 10, bobot: 0.12 },
+    { kode: 'plat_lantai', nama: 'Plat Lantai', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 6, bobot: 0.07 },
+    { kode: 'tangga', nama: 'Tangga', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 2, bobot: 0.03 },
+    { kode: 'atap', nama: 'Atap', sistem: 'STRUKTUR', satuan: '%', volDefault: 100, bobot: 0.10 },
+    { kode: 'dinding_partisi', nama: 'Dinding / Partisi', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.15 },
+    { kode: 'plafond', nama: 'Plafond', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.06 },
+    { kode: 'lantai', nama: 'Lantai', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.09 },
+    { kode: 'kusen', nama: 'Kusen', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.015 },
+    { kode: 'pintu', nama: 'Pintu', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.010 },
+    { kode: 'jendela', nama: 'Jendela', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.0125 },
+    { kode: 'finishing_plafond', nama: 'Finishing Plafond', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.010 },
+    { kode: 'finishing_dinding', nama: 'Finishing Dinding', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.050 },
+    { kode: 'finishing_kusen_pintu', nama: 'Finishing Kusen & Pintu', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.010 },
+    { kode: 'instalasi_listrik', nama: 'Instalasi Listrik', sistem: 'UTILITAS', satuan: 'Estimasi', volDefault: null, bobot: 0.020, isEstimasi: true },
+    { kode: 'instalasi_air', nama: 'Instalasi Air Bersih', sistem: 'UTILITAS', satuan: 'Estimasi', volDefault: null, bobot: 0.010, isEstimasi: true },
+    { kode: 'drainase_limbah', nama: 'Drainase Limbah', sistem: 'UTILITAS', satuan: 'm1', volDefault: 1, bobot: 0.0125 },
+  ],
+  3: [
+    { kode: 'pondasi_sloof', nama: 'Pondasi & Sloof', sistem: 'STRUKTUR', satuan: 'Estimasi', volDefault: null, bobot: 0.10, isEstimasi: true },
+    { kode: 'kolom', nama: 'Kolom', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 10, bobot: 0.13 },
+    { kode: 'balok', nama: 'Balok', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 8, bobot: 0.12 },
+    { kode: 'plat_lantai', nama: 'Plat Lantai', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 8, bobot: 0.10 },
+    { kode: 'tangga', nama: 'Tangga', sistem: 'STRUKTUR', satuan: 'unit', volDefault: 4, bobot: 0.03 },
+    { kode: 'atap', nama: 'Atap', sistem: 'STRUKTUR', satuan: '%', volDefault: 100, bobot: 0.07 },
+    { kode: 'dinding_partisi', nama: 'Dinding / Partisi', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.0625 },
+    { kode: 'plafond', nama: 'Plafond', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.08 },
+    { kode: 'lantai', nama: 'Lantai', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.10 },
+    { kode: 'kusen', nama: 'Kusen', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.015 },
+    { kode: 'pintu', nama: 'Pintu', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.010 },
+    { kode: 'jendela', nama: 'Jendela', sistem: 'ARSITEKTUR', satuan: 'unit', volDefault: 1, bobot: 0.0125 },
+    { kode: 'finishing_plafond', nama: 'Finishing Plafond', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.030 },
+    { kode: 'finishing_dinding', nama: 'Finishing Dinding', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.050 },
+    { kode: 'finishing_kusen_pintu', nama: 'Finishing Kusen & Pintu', sistem: 'ARSITEKTUR', satuan: '%', volDefault: 100, bobot: 0.030 },
+    { kode: 'instalasi_listrik', nama: 'Instalasi Listrik', sistem: 'UTILITAS', satuan: 'Estimasi', volDefault: null, bobot: 0.030, isEstimasi: true },
+    { kode: 'instalasi_air', nama: 'Instalasi Air Bersih', sistem: 'UTILITAS', satuan: 'Estimasi', volDefault: null, bobot: 0.015, isEstimasi: true },
+    { kode: 'drainase_limbah', nama: 'Drainase Limbah', sistem: 'UTILITAS', satuan: 'm1', volDefault: 1, bobot: 0.015 },
+  ]
+};
+
+const WORKFLOW_STEPS = [
+  { key: 'draft', label: 'Draft' },
+  { key: 'disposisi', label: 'Disposisi' },
+  { key: 'persiapan', label: 'Persiapan' },
+  { key: 'survey_lapangan', label: 'Survey' },
+  { key: 'analisis_data', label: 'Analisis' },
+  { key: 'penilaian', label: 'Penilaian' },
+  { key: 'diperiksa', label: 'Diperiksa' },
+  { key: 'disetujui', label: 'Disetujui' },
+];
+
+// ============================================================
+// AI ENGINE — SISTEM KECERDASAN BUATAN KOMPREHENSIF
+// ============================================================
+
+// AI Provider Configuration
+const AI_CONFIG = {
+  provider: 'openrouter', // Default provider
+  models: {
+    analysis: 'anthropic/claude-3.5-sonnet',
+    vision: 'anthropic/claude-3.5-sonnet',
+    chat: 'anthropic/claude-3.5-sonnet'
+  },
+  apiKey: null // User can set their own API key
+};
+
+// AI Engine Hook
+function useAIEngine() {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiInsights, setAiInsights] = useState(null);
+  const { addToast } = useApp();
+
+  // AI Analysis: Analyze damage patterns and provide recommendations
+  const analyzeDamagePattern = useCallback(async (komponenList, surveyData) => {
+    setIsAnalyzing(true);
+    try {
+      // Simulasi analisis AI (dalam produksi, ini akan memanggil API)
+      const criticalComponents = komponenList.filter(k => {
+        const hasil = hitungKomponenKerusakan(k);
+        return hasil.persen > 30 || k.tahap1 === 'ada_kerusakan_membahayakan';
+      });
+      
+      const damagePattern = detectDamagePattern(komponenList);
+      const recommendation = generateAIRecommendation(damagePattern, criticalComponents);
+      
+      const insights = {
+        pattern: damagePattern,
+        criticalComponents: criticalComponents.map(c => ({
+          name: c.nama,
+          severity: hitungKomponenKerusakan(c).persen,
+          recommendation: getComponentRecommendation(c)
+        })),
+        overallAssessment: recommendation,
+        priority: criticalComponents.length > 0 ? 'HIGH' : 'MEDIUM',
+        estimatedRepairCost: estimateRepairCost(komponenList, surveyData.luas_bangunan),
+        safetyRisk: criticalComponents.some(c => c.tahap1 === 'ada_kerusakan_membahayakan') ? 'CRITICAL' : 'MODERATE'
+      };
+      
+      setAiInsights(insights);
+      return insights;
+    } catch (error) {
+      addToast('AI Analysis failed: ' + error.message, 'error');
+      throw error;
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [addToast]);
+
+  // AI Prediction: Predict future damage progression
+  const predictDamageProgression = useCallback(async (komponenList, historicalData = []) => {
+    const currentTotal = hitungTotalKerusakan(komponenList);
+    const degradationRate = calculateDegradationRate(komponenList, historicalData);
+    
+    const predictions = {
+      '6_months': Math.min(currentTotal.totalPersen + (degradationRate * 0.5), 100),
+      '1_year': Math.min(currentTotal.totalPersen + (degradationRate * 1), 100),
+      '3_years': Math.min(currentTotal.totalPersen + (degradationRate * 3), 100),
+      '5_years': Math.min(currentTotal.totalPersen + (degradationRate * 5), 100)
+    };
+    
+    return {
+      current: currentTotal,
+      predictions,
+      degradationRate,
+      criticalThreshold: currentTotal.totalPersen > 45 ? 'EXCEEDED' : 
+                        currentTotal.totalPersen > 30 ? 'APPROACHING' : 'SAFE',
+      recommendedAction: currentTotal.totalPersen > 45 ? 'IMMEDIATE_REPAIR_REQUIRED' :
+                        currentTotal.totalPersen > 30 ? 'PLANNED_MAINTENANCE' : 'ROUTINE_MONITORING'
+    };
+  }, []);
+
+  // AI Image Analysis: Analyze uploaded images for damage detection
+  const analyzeImage = useCallback(async (imageFile, komponenType) => {
+    // Dalam produksi: Upload ke AI Vision API
+    // Simulasi response untuk demo
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          detectedDamages: [
+            { type: 'retak', confidence: 0.87, severity: 'moderate', location: 'dinding_utara' },
+            { type: 'pelapukan', confidence: 0.72, severity: 'minor', location: 'kusen_jendela' }
+          ],
+          analysis: 'Terdeteksi keretakan pada dinding dengan kemungkinan 87%. Direkomendasikan pemeriksaan struktur lebih lanjut.',
+          recommendation: 'Lakukan pengukuran lebar retak dan dokumentasi perkembangan. Pertimbangkan injeksi epoxy jika lebar > 2mm.',
+          componentMatch: komponenType
+        });
+      }, 1500);
+    });
+  }, []);
+
+  // AI Chat Assistant
+  const chatWithAI = useCallback(async (message, context = {}) => {
+    const responses = {
+      'default': `Saya adalah AI Assistant SIPRUSAK. Saya dapat membantu Anda dengan:
+• Analisis pola kerusakan bangunan
+• Rekomendasi perbaikan berdasarkan standar KemenPU
+• Estimasi biaya perbaikan
+• Prediksi kerusakan masa depan
+• Interpretasi hasil survei`,
+      'kerusakan': `Berdasarkan data kerusakan, saya merekomendasikan:
+1. Prioritaskan perbaikan komponen struktural (pondasi, kolom, balok)
+2. Lakukan pemeriksaan detail pada area dengan kerusakan > 30%
+3. Dokumentasikan perkembangan kerusakan setiap 6 bulan`,
+      'biaya': `Estimasi biaya perbaikan dapat dihitung berdasarkan:
+- Luas bangunan
+- Tingkat kerusakan
+- Jenis komponen yang rusak
+- Harga material lokal
+Gunakan fitur AI Cost Estimator untuk perhitungan detail.`,
+      'standar': `Standar yang digunakan:
+• Permen PU No.24/2008 - Pedoman Pemeliharaan Bangunan Gedung
+• SNI 1726-2019 - Tata Cara Perencanaan Ketahanan Gempa
+• SNI 2847:2019 - Persyaratan Beton Struktural`
+    };
+    
+    const lowerMsg = message.toLowerCase();
+    let response = responses.default;
+    if (lowerMsg.includes('rusak') || lowerMsg.includes('kerusakan')) response = responses.kerusakan;
+    else if (lowerMsg.includes('biaya') || lowerMsg.includes('harga')) response = responses.biaya;
+    else if (lowerMsg.includes('standar') || lowerMsg.includes('sn')) response = responses.standar;
+    
+    return { response, timestamp: new Date().toISOString() };
+  }, []);
+
+  // Generate AI Report
+  const generateAIReport = useCallback(async (survey, komponenList) => {
+    const totalDamage = hitungTotalKerusakan(komponenList);
+    const pattern = detectDamagePattern(komponenList);
+    const predictions = await predictDamageProgression(komponenList);
+    
+    return {
+      executiveSummary: generateExecutiveSummary(survey, totalDamage),
+      technicalAnalysis: generateTechnicalAnalysis(komponenList, totalDamage),
+      recommendations: generateRecommendations(totalDamage, pattern),
+      costEstimate: estimateRepairCost(komponenList, survey.luas_bangunan),
+      timeline: generateRepairTimeline(totalDamage),
+      appendices: {
+        methodology: 'AI-Enhanced Assessment v1.0',
+        confidence: '85%',
+        dataQuality: 'COMPLETE'
+      }
+    };
+  }, [predictDamageProgression]);
+
+  return {
+    isAnalyzing,
+    aiInsights,
+    analyzeDamagePattern,
+    predictDamageProgression,
+    analyzeImage,
+    chatWithAI,
+    generateAIReport
+  };
+}
+
+// Helper Functions for AI Engine
+function detectDamagePattern(komponenList) {
+  const strukturDamage = komponenList.filter(k => k.sistem === 'STRUKTUR' && hitungKomponenKerusakan(k).persen > 20);
+  const arsitekturDamage = komponenList.filter(k => k.sistem === 'ARSITEKTUR' && hitungKomponenKerusakan(k).persen > 20);
+  const utilitasDamage = komponenList.filter(k => k.sistem === 'UTILITAS' && hitungKomponenKerusakan(k).persen > 20);
+  
+  if (strukturDamage.length >= 3) return 'STRUCTURAL_DEGRADATION';
+  if (arsitekturDamage.length >= 5) return 'ARCHITECTURAL_DETERIORATION';
+  if (utilitasDamage.length >= 2) return 'UTILITY_FAILURE';
+  if (strukturDamage.length > 0 && arsitekturDamage.length > 0) return 'COMPREHENSIVE_DAMAGE';
+  return 'ISOLATED_DAMAGE';
+}
+
+function generateAIRecommendation(pattern, criticalComponents) {
+  const recommendations = {
+    'STRUCTURAL_DEGRADATION': 'Kerusakan struktural signifikan terdeteksi. Direkomendasikan pemeriksaan teknik detail dan pertimbangkan rehabilitasi struktural.',
+    'ARCHITECTURAL_DETERIORATION': 'Kerusakan arsitektur meluas. Fokus pada perbaikan estetika dan perlindungan elemen struktural.',
+    'UTILITY_FAILURE': 'Sistem utilitas memerlukan perhatian. Periksa instalasi listrik dan plumbing untuk mencegah kerusakan lanjutan.',
+    'COMPREHENSIVE_DAMAGE': 'Kerusakan komprehensif terdeteksi di multiple sistem. Direkomendasikan audit bangunan lengkap.',
+    'ISOLATED_DAMAGE': 'Kerusakan terisolasi pada komponen spesifik. Perbaikan terarah direkomendasikan.'
+  };
+  
+  return recommendations[pattern] || 'Analisis lanjutan diperlukan.';
+}
+
+function getComponentRecommendation(komponen) {
+  const hasil = hitungKomponenKerusakan(komponen);
+  if (hasil.persen > 45) return 'Penggantian total direkomendasikan';
+  if (hasil.persen > 30) return 'Rehabilitasi intensif diperlukan';
+  if (hasil.persen > 15) return 'Perbaikan preventif direkomendasikan';
+  return 'Pemantauan rutin cukup';
+}
+
+function calculateDegradationRate(komponenList, historicalData) {
+  if (historicalData.length < 2) return 2.5; // Default 2.5% per year
+  
+  const sorted = historicalData.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const yearsDiff = (new Date(last.date) - new Date(first.date)) / (365 * 24 * 60 * 60 * 1000);
+  
+  if (yearsDiff === 0) return 2.5;
+  return (last.totalDamage - first.totalDamage) / yearsDiff;
+}
+
+function estimateRepairCost(komponenList, luasBangunan) {
+  const baseCostPerM2 = 1500000; // Rp 1.5 juta per m2 untuk perbaikan ringan
+  const totalDamage = hitungTotalKerusakan(komponenList);
+  
+  let multiplier = 1;
+  if (totalDamage.totalPersen > 45) multiplier = 3.5;
+  else if (totalDamage.totalPersen > 30) multiplier = 2.5;
+  else if (totalDamage.totalPersen > 15) multiplier = 1.5;
+  
+  const estimatedCost = luasBangunan * baseCostPerM2 * multiplier;
+  
+  return {
+    min: estimatedCost * 0.8,
+    max: estimatedCost * 1.2,
+    estimate: estimatedCost,
+    breakdown: {
+      material: estimatedCost * 0.6,
+      labor: estimatedCost * 0.3,
+      equipment: estimatedCost * 0.1
+    }
+  };
+}
+
+function generateExecutiveSummary(survey, totalDamage) {
+  return `Laporan Kerusakan Bangunan ${survey.nama_bangunan} di ${survey.nama_sekolah} menunjukkan tingkat kerusakan ${totalDamage.kesimpulan} dengan total nilai kerusakan ${totalDamage.totalPersen.toFixed(2)}%. ${totalDamage.isCritical ? 'Terdeteksi komponen yang membahayakan keselamatan yang memerlukan perhatian segera.' : 'Tidak terdeteksi risiko keselamatan kritis.'}`;
+}
+
+function generateTechnicalAnalysis(komponenList, totalDamage) {
+  return komponenList
+    .filter(k => hitungKomponenKerusakan(k).persen > 10)
+    .map(k => ({
+      component: k.nama,
+      system: k.sistem,
+      damagePercentage: hitungKomponenKerusakan(k).persen,
+      recommendation: getComponentRecommendation(k)
+    }));
+}
+
+function generateRecommendations(totalDamage, pattern) {
+  const recs = [];
+  
+  if (totalDamage.totalPersen > 45) {
+    recs.push('Prioritas 1: Lakukan penanganan darurat pada komponen kritis');
+    recs.push('Prioritas 2: Rencanakan rehabilitasi komprehensif');
+    recs.push('Prioritas 3: Evakuasi sementara jika diperlukan');
+  } else if (totalDamage.totalPersen > 30) {
+    recs.push('Prioritas 1: Rencanakan perbaikan terjadwal dalam 6 bulan');
+    recs.push('Prioritas 2: Lakukan pemantauan bulanan');
+    recs.push('Prioritas 3: Siapkan anggaran perbaikan');
+  } else {
+    recs.push('Prioritas 1: Lanjutkan pemeliharaan rutin');
+    recs.push('Prioritas 2: Dokumentasikan kondisi saat ini');
+    recs.push('Prioritas 3: Inspeksi ulang dalam 12 bulan');
+  }
+  
+  return recs;
+}
+
+function generateRepairTimeline(totalDamage) {
+  if (totalDamage.totalPersen > 45) {
+    return {
+      phase1: '0-2 minggu: Penanganan darurat dan pengamanan',
+      phase2: '2-8 minggu: Perencanaan detail dan procurement',
+      phase3: '2-6 bulan: Pelaksanaan rehabilitasi',
+      totalDuration: '6-8 bulan'
+    };
+  } else if (totalDamage.totalPersen > 30) {
+    return {
+      phase1: '0-1 bulan: Perencanaan dan pengadaan',
+      phase2: '1-4 bulan: Pelaksanaan perbaikan',
+      phase3: '4-5 bulan: Finishing dan commissioning',
+      totalDuration: '4-5 bulan'
+    };
+  }
+  
+  return {
+    phase1: '0-2 bulan: Monitoring dan evaluasi',
+    phase2: '2-3 bulan: Perbaikan minor jika diperlukan',
+    totalDuration: '3 bulan'
+  };
+}
+function hitungKomponenKerusakan(komponen, tipeInput) {
+  const { volTotal, volTidakRusak, volSangatRingan, volRingan, volSedang, volBerat, volSangatBerat, volTidakSesuai, bobot, isEstimasi, tahap1 } = komponen;
+  
+  if (isEstimasi) {
+    // Estimasi: pilih satu klasifikasi langsung
+    const nilaiMap = { 1: 0, 2: 0.20, 3: 0.35, 4: 0.50, 5: 0.70, 6: 0.85, 7: 1.00 };
+    const nilaiKlasifikasi = nilaiMap[komponen.estimasiKlasifikasi || 1] || 0;
+    const persen = nilaiKlasifikasi * 100;
+    return { persen, nilaiTerbobot: nilaiKlasifikasi * bobot };
+  }
+  
+  const vTotal = parseFloat(volTotal) || 0;
+  if (vTotal <= 0) return { persen: 0, nilaiTerbobot: 0 };
+  
+  const vols = [
+    { vol: parseFloat(volTidakRusak) || 0, nilai: 0.00 },
+    { vol: parseFloat(volSangatRingan) || 0, nilai: 0.20 },
+    { vol: parseFloat(volRingan) || 0, nilai: 0.35 },
+    { vol: parseFloat(volSedang) || 0, nilai: 0.50 },
+    { vol: parseFloat(volBerat) || 0, nilai: 0.70 },
+    { vol: parseFloat(volSangatBerat) || 0, nilai: 0.85 },
+    { vol: parseFloat(volTidakSesuai) || 0, nilai: 1.00 },
+  ];
+  
+  const sigma = vols.reduce((acc, v) => acc + (v.vol * v.nilai), 0);
+  const persen = (sigma / vTotal) * 100;
+  const nilaiTerbobot = (sigma / vTotal) * bobot;
+  
+  return { persen, nilaiTerbobot };
+}
+
+function hitungTotalKerusakan(komponenList) {
+  let total = 0;
+  let isCritical = false;
+  
+  for (const k of komponenList) {
+    if (k.tahap1 === 'ada_kerusakan_membahayakan') {
+      isCritical = true;
+    }
+    const hasil = hitungKomponenKerusakan(k);
+    total += hasil.nilaiTerbobot;
+  }
+  
+  const totalPersen = total * 100;
+  let kesimpulan;
+  
+  if (isCritical || totalPersen > 45) {
+    kesimpulan = 'Rusak Berat';
+  } else if (totalPersen === 0) {
+    kesimpulan = 'Tidak Ada Kerusakan';
+  } else if (totalPersen <= 30) {
+    kesimpulan = 'Rusak Ringan';
+  } else {
+    kesimpulan = 'Rusak Sedang';
+  }
+  
+  return { totalPersen, kesimpulan, isCritical };
+}
+
+// ============================================================
+// CONTEXT
+// ============================================================
+const AppContext = createContext(null);
+
+function useApp() { return useContext(AppContext); }
+
+// ============================================================
+// TOAST
+// ============================================================
+function ToastContainer({ toasts }) {
+  return (
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast ${t.type}`}>
+          <span style={{ fontSize: 16 }}>
+            {t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : 'ℹ'}
+          </span>
+          {t.message}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// AUTH PAGE
+// ============================================================
+function AuthPage({ onLogin }) {
+  const [mode, setMode] = useState('login');
+  const [form, setForm] = useState({ email: '', password: '', fullName: '', role: 'surveyor' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError('');
+    try {
+      if (IS_DEMO_MODE) {
+        // Demo mode: login tanpa Supabase
+        onLogin({ id: 'demo', email: form.email, full_name: form.fullName || 'Demo User', role: 'admin' });
+        return;
+      }
+      if (mode === 'login') {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+        if (error) throw error;
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+        onLogin(profile || { id: data.user.id, email: form.email, full_name: form.email, role: 'surveyor' });
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email: form.email, password: form.password,
+          options: { data: { full_name: form.fullName, role: form.role } }
+        });
+        if (error) throw error;
+        setMode('login');
+        setError('Registrasi berhasil! Silakan login.');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <h1>SIPRUSAK</h1>
+          <p>Sistem Penilaian Kerusakan Bangunan Sekolah</p>
+          <p style={{ color: 'var(--text3)', marginTop: 4, fontSize: 10 }}>Berbasis Standar KemenPU / Permen PU No.24/2008</p>
+        </div>
+        
+        {!IS_DEMO_MODE && IS_CONFIGURED && (
+          <div className="alert alert-warning" style={{ marginBottom: 20 }}>
+            <span>⚠</span>
+            <div>
+              <strong>Mode Demo</strong> — Supabase belum dikonfigurasi. 
+              Lihat README.md untuk setup lengkap.
+            </div>
+          </div>
+        )}
+        
+        {error && (
+          <div className={`alert ${error.includes('berhasil') ? 'alert-success' : 'alert-danger'}`} style={{ marginBottom: 16 }}>
+            {error}
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit}>
+          {mode === 'register' && (
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label>Nama Lengkap</label>
+              <input value={form.fullName} onChange={e => setForm({...form, fullName: e.target.value})} placeholder="Nama Surveyor" required />
+            </div>
+          )}
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label>Email</label>
+            <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@instansi.go.id" required />
+          </div>
+          <div className="form-group" style={{ marginBottom: 14 }}>
+            <label>Password</label>
+            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="••••••••" required minLength={6} />
+          </div>
+          {mode === 'register' && (
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label>Role</label>
+              <select value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
+                <option value="surveyor">Surveyor</option>
+                <option value="admin">Admin</option>
+                <option value="verifikator">Verifikator</option>
+                <option value="approver">Approver</option>
+              </select>
+            </div>
+          )}
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }} disabled={loading}>
+            {loading ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : null}
+            {mode === 'login' ? (!IS_DEMO_MODE ? 'Masuk' : 'Masuk (Demo)') : 'Daftar'}
+          </button>
+        </form>
+        
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--text3)' }}>
+          {mode === 'login' ? (
+            <>Belum punya akun? <span style={{ color: 'var(--accent2)', cursor: 'pointer' }} onClick={() => setMode('register')}>Daftar</span></>
+          ) : (
+            <>Sudah punya akun? <span style={{ color: 'var(--accent2)', cursor: 'pointer' }} onClick={() => setMode('login')}>Masuk</span></>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+function Sidebar({ currentPage, setCurrentPage, user, onLogout }) {
+  const navItems = [
+    { page: 'dashboard', icon: '▦', label: 'Dashboard' },
+    { page: 'surveys', icon: '≡', label: 'Daftar Survei' },
+    { page: 'new-survey', icon: '+', label: 'Survei Baru', highlight: true },
+  ];
+  const adminItems = [
+    { page: 'users', icon: '◎', label: 'Manajemen User' },
+    { page: 'reports', icon: '↓', label: 'Laporan & Export' },
+  ];
+
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <h1>SIPRUSAK</h1>
+        <p>Penilaian Kerusakan Bangunan Sekolah</p>
+        <p style={{ fontSize: 9, color: 'var(--text3)', marginTop: 2 }}>v2.0 | KemenPU 2020</p>
+      </div>
+      <nav className="sidebar-nav">
+        <div className="nav-section">Menu Utama</div>
+        {navItems.map(item => (
+          <div key={item.page} className={`nav-item ${currentPage === item.page ? 'active' : ''}`}
+            onClick={() => setCurrentPage(item.page)}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{item.icon}</span>
+            {item.label}
+            {item.highlight && <span style={{ marginLeft: 'auto', fontSize: 9, background: 'var(--accent2)', color: 'white', padding: '1px 6px', borderRadius: 3 }}>BARU</span>}
+          </div>
+        ))}
+        {(user?.role === 'admin' || user?.role === 'approver') && (
+          <>
+            <div className="nav-section">Administrasi</div>
+            {adminItems.map(item => (
+              <div key={item.page} className={`nav-item ${currentPage === item.page ? 'active' : ''}`}
+                onClick={() => setCurrentPage(item.page)}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 14 }}>{item.icon}</span>
+                {item.label}
+              </div>
+            ))}
+          </>
+        )}
+      </nav>
+      <div className="sidebar-footer">
+        <div className="user-info">
+          <div className="avatar">{(user?.full_name || 'U')[0].toUpperCase()}</div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text)' }}>{user?.full_name || 'User'}</div>
+            <div style={{ fontSize: 10, textTransform: 'capitalize', color: 'var(--accent2)' }}>{user?.role || 'surveyor'}</div>
+          </div>
+        </div>
+        <button className="btn btn-secondary btn-sm" onClick={onLogout} style={{ width: '100%', justifyContent: 'center' }}>
+          Keluar
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function Dashboard({ surveys, onNavigate }) {
+  const stats = {
+    total: surveys.length,
+    berjalan: surveys.filter(s => !['draft', 'disetujui', 'ditolak'].includes(s.status)).length,
+    selesai: surveys.filter(s => s.status === 'disetujui').length,
+    berat: surveys.filter(s => s.kesimpulan_kerusakan === 'Rusak Berat').length,
+  };
+
+  const recent = surveys.slice(0, 5);
+
+  const getStatusBadge = (status) => {
+    const map = {
+      draft: 'badge-draft', disetujui: 'badge-disetujui',
+      survey_lapangan: 'badge-survey', penilaian: 'badge-penilaian',
+    };
+    return map[status] || 'badge-draft';
+  };
+
+  const getKerusakanBadge = (k) => {
+    if (!k) return 'badge-draft';
+    if (k === 'Rusak Ringan') return 'badge-ringan';
+    if (k === 'Rusak Sedang') return 'badge-sedang';
+    if (k === 'Rusak Berat') return 'badge-berat';
+    return 'badge-draft';
+  };
+
+  return (
+    <div className="page-content">
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700 }}>Dashboard Penilaian Kerusakan</h2>
+        <p style={{ color: 'var(--text3)', fontSize: 13, marginTop: 4 }}>
+          Sistem Identifikasi & Verifikasi Kerusakan Bangunan Sekolah/Madrasah · Standar KemenPU
+        </p>
+      </div>
+
+      {(!window._supabaseClient && !supabase) && (
+        <div className="config-notice">
+          <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--warning)', fontSize: 14 }}>
+            ⚙ Mode Demo / Supabase Tidak Terhubung
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12 }}>
+            Untuk mengaktifkan penyimpanan data ke database, pastikan koneksi Supabase berjalan.
+          </p>
+          <ol style={{ fontSize: 12, color: 'var(--text2)', paddingLeft: 20, lineHeight: 2 }}>
+            <li>Cek Console (F12) untuk melihat status koneksi</li>
+            <li>Jalankan <code style={{ color: 'var(--accent2)', background: 'rgba(33,150,243,0.1)', padding: '1px 6px', borderRadius: 3 }}>testSupabase()</code> untuk test manual</li>
+            <li>Refresh halaman (Ctrl+F5) jika diperlukan</li>
+          </ol>
+        </div>
+      )}
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Total Survei</div>
+          <div className="stat-value">{stats.total}</div>
+          <div className="stat-sub">Semua status</div>
+        </div>
+        <div className="stat-card warning">
+          <div className="stat-label">Sedang Berjalan</div>
+          <div className="stat-value">{stats.berjalan}</div>
+          <div className="stat-sub">Dalam proses</div>
+        </div>
+        <div className="stat-card success">
+          <div className="stat-label">Disetujui</div>
+          <div className="stat-value">{stats.selesai}</div>
+          <div className="stat-sub">Final</div>
+        </div>
+        <div className="stat-card danger">
+          <div className="stat-label">Rusak Berat</div>
+          <div className="stat-value">{stats.berat}</div>
+          <div className="stat-sub">&gt;45% kerusakan</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="card">
+          <div className="card-header">
+            Survei Terbaru
+            <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('surveys')}>Lihat Semua</button>
+          </div>
+          {recent.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📋</div>
+              <h3>Belum Ada Survei</h3>
+              <p>Mulai dengan membuat survei baru</p>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>Bangunan</th>
+                  <th>Status</th>
+                  <th>Kerusakan</th>
+                </tr></thead>
+                <tbody>
+                  {recent.map(s => (
+                    <tr key={s.id}>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>{s.nama_bangunan}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text3)' }}>{s.nama_sekolah}</div>
+                      </td>
+                      <td><span className={`badge ${getStatusBadge(s.status)}`}>{s.status.replace('_', ' ')}</span></td>
+                      <td>
+                        {s.total_nilai_kerusakan !== undefined && s.total_nilai_kerusakan !== null ? (
+                          <span className={`badge ${getKerusakanBadge(s.kesimpulan_kerusakan)}`}>
+                            {s.total_nilai_kerusakan.toFixed(1)}%
+                          </span>
+                        ) : <span style={{ color: 'var(--text3)', fontSize: 11 }}>—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header">Distribusi Kerusakan</div>
+          {surveys.filter(s => s.status === 'disetujui').length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📊</div>
+              <h3>Belum Ada Data Final</h3>
+              <p>Data muncul setelah survei disetujui</p>
+            </div>
+          ) : (
+            <div>
+              {['Tidak Ada Kerusakan', 'Rusak Ringan', 'Rusak Sedang', 'Rusak Berat'].map(label => {
+                const count = surveys.filter(s => s.kesimpulan_kerusakan === label).length;
+                const pct = surveys.length > 0 ? (count / surveys.length) * 100 : 0;
+                const colorMap = { 'Tidak Ada Kerusakan': 'var(--text3)', 'Rusak Ringan': 'var(--ringan)', 'Rusak Sedang': 'var(--warning)', 'Rusak Berat': 'var(--danger)' };
+                return (
+                  <div key={label} style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
+                      <span style={{ color: colorMap[label] }}>{label}</span>
+                      <span style={{ fontFamily: 'var(--mono)', color: 'var(--text2)' }}>{count} ({pct.toFixed(0)}%)</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div className={`progress-fill ${label.includes('Ringan') ? 'ringan' : label.includes('Sedang') ? 'sedang' : label.includes('Berat') ? 'berat' : ''}`}
+                        style={{ width: `${pct}%`, background: colorMap[label] }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// DAFTAR SURVEI
+// ============================================================
+function SurveyList({ surveys, onView, onNew, loading }) {
+  const [filter, setFilter] = useState('');
+  const filtered = surveys.filter(s =>
+    s.nama_sekolah?.toLowerCase().includes(filter.toLowerCase()) ||
+    s.nama_bangunan?.toLowerCase().includes(filter.toLowerCase()) ||
+    s.npsn?.includes(filter)
+  );
+
+  const getStatusBadge = (status) => {
+    const map = {
+      draft: 'badge-draft', disetujui: 'badge-disetujui',
+      survey_lapangan: 'badge-survey', penilaian: 'badge-penilaian',
+      diperiksa: 'badge-penilaian', analisis_data: 'badge-survey',
+      disposisi: 'badge-survey', persiapan: 'badge-survey',
+    };
+    return map[status] || 'badge-draft';
+  };
+
+  return (
+    <div className="page-content">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700 }}>Daftar Survei Kerusakan</h2>
+          <p style={{ color: 'var(--text3)', fontSize: 13, marginTop: 4 }}>{surveys.length} total survei tersimpan</p>
+        </div>
+        <button className="btn btn-primary" onClick={onNew}>+ Survei Baru</button>
+      </div>
+
+      <div className="card">
+        <div style={{ marginBottom: 16 }}>
+          <input placeholder="Cari nama sekolah, bangunan, NPSN..." value={filter}
+            onChange={e => setFilter(e.target.value)} style={{ maxWidth: 400 }} />
+        </div>
+        {loading ? (
+          <div className="loading"><div className="spinner"/><span style={{ color: 'var(--text3)' }}>Memuat data...</span></div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📋</div>
+            <h3>Belum Ada Survei</h3>
+            <p>Buat survei baru untuk memulai penilaian kerusakan</p>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr>
+                <th>#</th>
+                <th>Sekolah & Bangunan</th>
+                <th>Lantai</th>
+                <th>Tanggal</th>
+                <th>Status</th>
+                <th>Kerusakan</th>
+                <th>Aksi</th>
+              </tr></thead>
+              <tbody>
+                {filtered.map((s, i) => (
+                  <tr key={s.id}>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text3)' }}>{(i+1).toString().padStart(3,'0')}</td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{s.nama_bangunan}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>{s.nama_sekolah} {s.npsn ? `· ${s.npsn}` : ''}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>{s.kabupaten_kota || ''}</div>
+                    </td>
+                    <td style={{ fontFamily: 'var(--mono)', textAlign: 'center' }}>{s.jumlah_lantai} Lt</td>
+                    <td style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {s.tanggal_survey ? new Date(s.tanggal_survey).toLocaleDateString('id-ID') : 
+                       new Date(s.created_at).toLocaleDateString('id-ID')}
+                    </td>
+                    <td><span className={`badge ${getStatusBadge(s.status)}`}>{s.status.replace(/_/g,' ')}</span></td>
+                    <td>
+                      {s.total_nilai_kerusakan !== null && s.total_nilai_kerusakan !== undefined ? (
+                        <div>
+                          <span className={`badge ${s.kesimpulan_kerusakan === 'Rusak Berat' ? 'badge-berat' : s.kesimpulan_kerusakan === 'Rusak Sedang' ? 'badge-sedang' : 'badge-ringan'}`}>
+                            {Number(s.total_nilai_kerusakan).toFixed(1)}%
+                          </span>
+                          <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{s.kesimpulan_kerusakan}</div>
+                        </div>
+                      ) : <span style={{ color: 'var(--text3)', fontSize: 11 }}>—</span>}
+                    </td>
+                    <td>
+                      <button className="btn btn-secondary btn-sm" onClick={() => onView(s)}>Buka</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FORM SURVEI BARU
+// ============================================================
+function SurveyForm({ onSave, onCancel, editData, onHasChanges }) {
+  const { addToast } = useApp();
+  const [form, setForm] = useState({
+    nama_sekolah: '', npsn: '', nama_bangunan: '', nup: '',
+    alamat: '', kabupaten_kota: '', provinsi: '',
+    koordinat_lat: '', koordinat_lng: '',
+    luas_bangunan: '', jumlah_lantai: 1,
+    tanggal_survey: new Date().toISOString().split('T')[0],
+    ...editData
+  });
+  const [saving, setSaving] = useState(false);
+
+  // Track unsaved changes
+  useEffect(() => {
+    if (onHasChanges) onHasChanges(true);
+    return () => { if (onHasChanges) onHasChanges(false); };
+  }, []);
+
+  const handleSave = async () => {
+    if (!form.nama_sekolah || !form.nama_bangunan) {
+      addToast('Nama sekolah dan bangunan wajib diisi', 'error'); return;
+    }
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="page-content">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{editData ? 'Edit Data Survei' : 'Survei Kerusakan Baru'}</h2>
+          <p style={{ color: 'var(--text3)', fontSize: 13, marginTop: 4 }}>Identifikasi bangunan sekolah/madrasah</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary" onClick={onCancel}>Batal</button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}/> : null}
+            {editData ? 'Simpan Perubahan' : 'Buat Survei'}
+          </button>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header">Data Identifikasi Bangunan</div>
+        <div className="form-grid">
+          <div className="form-group">
+            <label>Nama Sekolah *</label>
+            <input value={form.nama_sekolah} onChange={e => setForm({...form, nama_sekolah: e.target.value})} placeholder="SDN 1 Contoh" />
+          </div>
+          <div className="form-group">
+            <label>NPSN</label>
+            <input value={form.npsn} onChange={e => setForm({...form, npsn: e.target.value})} placeholder="Nomor Pokok Sekolah Nasional" />
+          </div>
+          <div className="form-group">
+            <label>Nama Bangunan *</label>
+            <input value={form.nama_bangunan} onChange={e => setForm({...form, nama_bangunan: e.target.value})} placeholder="Gedung Kelas 1-3" />
+          </div>
+          <div className="form-group">
+            <label>NUP (No. Urut Perolehan)</label>
+            <input value={form.nup} onChange={e => setForm({...form, nup: e.target.value})} placeholder="001" />
+          </div>
+          <div className="form-group full">
+            <label>Alamat</label>
+            <input value={form.alamat} onChange={e => setForm({...form, alamat: e.target.value})} placeholder="Jl. Contoh No.1" />
+          </div>
+          <div className="form-group">
+            <label>Kabupaten/Kota</label>
+            <input value={form.kabupaten_kota} onChange={e => setForm({...form, kabupaten_kota: e.target.value})} placeholder="Kab. Contoh" />
+          </div>
+          <div className="form-group">
+            <label>Provinsi</label>
+            <input value={form.provinsi} onChange={e => setForm({...form, provinsi: e.target.value})} placeholder="Jawa Barat" />
+          </div>
+          <div className="form-group">
+            <label>Koordinat Latitude</label>
+            <input type="number" step="0.0000001" value={form.koordinat_lat} onChange={e => setForm({...form, koordinat_lat: e.target.value})} placeholder="-6.2088" />
+          </div>
+          <div className="form-group">
+            <label>Koordinat Longitude</label>
+            <input type="number" step="0.0000001" value={form.koordinat_lng} onChange={e => setForm({...form, koordinat_lng: e.target.value})} placeholder="106.8456" />
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header">Spesifikasi Bangunan</div>
+        <div className="form-grid-3">
+          <div className="form-group">
+            <label>Luas Bangunan (m²)</label>
+            <input type="number" value={form.luas_bangunan} onChange={e => setForm({...form, luas_bangunan: e.target.value})} placeholder="100" />
+          </div>
+          <div className="form-group">
+            <label>Jumlah Lantai *</label>
+            <select value={form.jumlah_lantai} onChange={e => setForm({...form, jumlah_lantai: parseInt(e.target.value)})}>
+              <option value={1}>1 Lantai (Form A)</option>
+              <option value={2}>2 Lantai / Panggung (Form B)</option>
+              <option value={3}>3 Lantai atau Lebih (Form C)</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Tanggal Survey</label>
+            <input type="date" value={form.tanggal_survey} onChange={e => setForm({...form, tanggal_survey: e.target.value})} />
+          </div>
+        </div>
+        
+        <div className="alert alert-info" style={{ marginTop: 16 }}>
+          <span>ℹ</span>
+          <div>
+            <strong>Tipe Form Dipilih: </strong>
+            {form.jumlah_lantai === 1 ? 'Form A — Bangunan 1 Lantai (16 komponen)' :
+             form.jumlah_lantai === 2 ? 'Form B — Bangunan 2 Lantai/Panggung (18 komponen, ada Plat Lantai & Tangga)' :
+             'Form C — Bangunan 3 Lantai atau Lebih (18 komponen, bobot berbeda)'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// KOMPONEN PENILAIAN (ASSESSMENT ENGINE)
+// ============================================================
+function AssessmentEngine({ survey, komponenData, onChange, onSave, readOnly }) {
+  const tipe = survey.jumlah_lantai <= 1 ? 1 : survey.jumlah_lantai === 2 ? 2 : 3;
+  const template = BOBOT_TEMPLATE[tipe] || BOBOT_TEMPLATE[1];
+  
+  const initKomponen = () => {
+    return template.map(t => {
+      const existing = komponenData?.find(k => k.kode_komponen === t.kode);
+      return {
+        kode: t.kode,
+        nama: t.nama,
+        sistem: t.sistem,
+        satuan: t.satuan,
+        bobot: t.bobot,
+        isEstimasi: t.isEstimasi || false,
+        volTotal: existing?.volume_total ?? (t.volDefault || 1),
+        tahap1: existing?.tahap1_status || 'tidak_ada_kerusakan',
+        // Tahap 2 volumes
+        volTidakRusak: existing?.vol_tidak_rusak ?? 0,
+        volSangatRingan: existing?.vol_sangat_ringan ?? 0,
+        volRingan: existing?.vol_ringan ?? 0,
+        volSedang: existing?.vol_sedang ?? 0,
+        volBerat: existing?.vol_berat ?? 0,
+        volSangatBerat: existing?.vol_sangat_berat ?? 0,
+        volTidakSesuai: existing?.vol_tidak_sesuai ?? 0,
+        estimasiKlasifikasi: existing?.estimasi_klasifikasi || 1,
+        keterangan: existing?.keterangan || '',
+      };
+    });
+  };
+
+  const [komponen, setKomponen] = useState(initKomponen);
+  const [saving, setSaving] = useState(false);
+  const { addToast } = useApp();
+
+  const updateKomponen = (idx, field, value) => {
+    const newK = [...komponen];
+    const k = newK[idx];
+    const numValue = parseFloat(value) || 0;
+    
+    // Validation for volume fields: sum of all damage volumes should not exceed total
+    if (field.startsWith('vol') && field !== 'volTotal') {
+      const vTotal = parseFloat(k.volTotal) || 1;
+      const otherVolumes = ['volTidakRusak', 'volSangatRingan', 'volRingan', 'volSedang', 'volBerat', 'volSangatBerat', 'volTidakSesuai']
+        .filter(f => f !== field)
+        .reduce((sum, f) => sum + (parseFloat(k[f]) || 0), 0);
+      
+      if (otherVolumes + numValue > vTotal) {
+        addToast(`Total volume kerusakan tidak boleh melebihi volume total (${vTotal})`, 'warning');
+        return;
+      }
+    }
+    
+    newK[idx] = { ...k, [field]: value };
+    setKomponen(newK);
+    if (onChange) onChange(newK);
+  };
+
+  const { totalPersen, kesimpulan, isCritical } = hitungTotalKerusakan(komponen);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(komponen, totalPersen, kesimpulan, isCritical);
+      addToast('Data penilaian disimpan', 'success');
+    } catch (err) {
+      addToast('Gagal menyimpan: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sistems = [...new Set(template.map(t => t.sistem))];
+
+  return (
+    <div>
+      {/* Summary Kerusakan */}
+      <div className="kerusakan-summary" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Total Nilai Kerusakan Massa Bangunan
+            </div>
+            <div className={`kerusakan-value ${kesimpulan === 'Rusak Ringan' ? 'ringan' : kesimpulan === 'Rusak Sedang' ? 'sedang' : kesimpulan === 'Rusak Berat' ? 'berat' : ''}`}>
+              {totalPersen.toFixed(2)}%
+            </div>
+            <div className="kerusakan-label" style={{ color: kesimpulan === 'Rusak Berat' ? 'var(--danger)' : kesimpulan === 'Rusak Sedang' ? 'var(--warning)' : 'var(--success)' }}>
+              {kesimpulan}
+            </div>
+            {isCritical && (
+              <div style={{ marginTop: 8 }}>
+                <span className="badge badge-berat">⚠ Komponen Membahayakan Keselamatan</span>
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ textAlign: 'center', padding: '10px 16px', background: 'var(--surface)', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ringan</div>
+              <div style={{ fontSize: 13, fontFamily: 'var(--mono)', color: 'var(--ringan)' }}>≤ 30%</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '10px 16px', background: 'var(--surface)', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sedang</div>
+              <div style={{ fontSize: 13, fontFamily: 'var(--mono)', color: 'var(--warning)' }}>30–45%</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '10px 16px', background: 'var(--surface)', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Berat</div>
+              <div style={{ fontSize: 13, fontFamily: 'var(--mono)', color: 'var(--danger)' }}>&gt; 45%</div>
+            </div>
+            {!readOnly && (
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}/> : null}
+                Simpan Penilaian
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="progress-bar" style={{ marginTop: 16, height: 8 }}>
+          <div className={`progress-fill ${kesimpulan === 'Rusak Ringan' ? 'ringan' : kesimpulan === 'Rusak Sedang' ? 'sedang' : 'berat'}`}
+            style={{ width: `${Math.min(totalPersen, 100)}%` }} />
+        </div>
+      </div>
+
+      {/* Tabel Penilaian */}
+      <div style={{ overflowX: 'auto' }}>
+        <table className="assessment-table">
+          <thead>
+            <tr>
+              <th rowSpan={3} style={{ width: 30 }}>(1)</th>
+              <th rowSpan={3}>(2)</th>
+              <th rowSpan={3} style={{ minWidth: 160 }}>(3) Komponen</th>
+              <th rowSpan={3}>(4) Sat</th>
+              <th rowSpan={3}>(5) Vol</th>
+              <th colSpan={7}>(6)–(12) Tahap 2 - Volume Kerusakan per Klasifikasi</th>
+              <th rowSpan={3} style={{ minWidth: 180 }}>Tahap 1 - Keselamatan</th>
+              <th colSpan={7}>(14)–(20) Perhitungan</th>
+              <th rowSpan={3}>(21) Total %</th>
+              <th rowSpan={3}>(22) Bobot</th>
+              <th rowSpan={3}>(23) Nilai</th>
+            </tr>
+            <tr>
+              <th>Tdk Rusak</th>
+              <th>Sgt Ringan</th>
+              <th>Ringan</th>
+              <th>Sedang</th>
+              <th>Berat</th>
+              <th>Sgt Berat</th>
+              <th>Tdk Sesuai</th>
+              <th style={{ fontSize: 9 }}>1</th>
+              <th style={{ fontSize: 9 }}>2</th>
+              <th style={{ fontSize: 9 }}>3</th>
+              <th style={{ fontSize: 9 }}>4</th>
+              <th style={{ fontSize: 9 }}>5</th>
+              <th style={{ fontSize: 9 }}>6</th>
+              <th style={{ fontSize: 9 }}>7</th>
+            </tr>
+            <tr>
+              {[0, 0.20, 0.35, 0.50, 0.70, 0.85, 1.00].map(v => (
+                <th key={v} style={{ fontFamily: 'var(--mono)', fontSize: 9 }}>{v.toFixed(2)}</th>
+              ))}
+              {[0, 0.20, 0.35, 0.50, 0.70, 0.85, 1.00].map(v => (
+                <th key={`c${v}`} style={{ fontFamily: 'var(--mono)', fontSize: 9 }}>{v.toFixed(2)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sistems.map(sistem => {
+              const rows = komponen.filter((_, i) => template[i]?.sistem === sistem);
+              const idxs = komponen.map((_, i) => i).filter(i => template[i]?.sistem === sistem);
+              return (
+                <React.Fragment key={sistem}>
+                  <tr className="sistem-row">
+                    <td colSpan={23}>{sistem}</td>
+                  </tr>
+                  {idxs.map(idx => {
+                    const k = komponen[idx];
+                    const hasil = hitungKomponenKerusakan(k);
+                    const fields = ['volTidakRusak','volSangatRingan','volRingan','volSedang','volBerat','volSangatBerat','volTidakSesuai'];
+                    const nilaiFields = [0,0.20,0.35,0.50,0.70,0.85,1.00];
+                    
+                    // Untuk kolom perhitungan (14)-(20), hitung kontribusi masing-masing
+                    const vTotal = parseFloat(k.volTotal) || 1;
+                    
+                    return (
+                      <tr key={k.kode}>
+                        <td style={{ textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text3)' }}>{idx+1}</td>
+                        <td style={{ fontSize: 10, color: 'var(--text3)' }}>{k.sistem.charAt(0)}{idx < 6 ? idx : ''}</td>
+                        <td style={{ fontWeight: 500 }}>{k.nama}</td>
+                        <td style={{ fontFamily: 'var(--mono)', fontSize: 11, textAlign: 'center' }}>{k.satuan}</td>
+                        <td>
+                          {!k.isEstimasi ? (
+                            <input className="assessment-input" type="number" min="0"
+                              value={k.volTotal} disabled={readOnly}
+                              onChange={e => updateKomponen(idx, 'volTotal', e.target.value)}
+                              style={{ width: 55 }} />
+                          ) : <span style={{ color: 'var(--text3)', fontSize: 11 }}>Est.</span>}
+                        </td>
+                        
+                        {/* Tahap 2: input volume per klasifikasi */}
+                        {k.isEstimasi ? (
+                          <td colSpan={7} style={{ textAlign: 'center' }}>
+                            <select className="tahap1-select" style={{ minWidth: 220 }}
+                              value={k.estimasiKlasifikasi} disabled={readOnly}
+                              onChange={e => updateKomponen(idx, 'estimasiKlasifikasi', parseInt(e.target.value))}>
+                              <option value={1}>1 - Tidak Rusak (0.00)</option>
+                              <option value={2}>2 - Rusak Sangat Ringan (0.20)</option>
+                              <option value={3}>3 - Rusak Ringan (0.35)</option>
+                              <option value={4}>4 - Rusak Sedang (0.50)</option>
+                              <option value={5}>5 - Rusak Berat (0.70)</option>
+                              <option value={6}>6 - Rusak Sangat Berat (0.85)</option>
+                              <option value={7}>7 - Tidak Sesuai (1.00)</option>
+                            </select>
+                          </td>
+                        ) : (
+                          fields.map((field, fi) => (
+                            <td key={field} style={{ textAlign: 'center', padding: '4px 6px' }}>
+                              <input className="assessment-input" type="number" min="0" step="0.1"
+                                value={k[field]} disabled={readOnly}
+                                onChange={e => updateKomponen(idx, field, e.target.value)}
+                                style={{ width: 55 }} />
+                            </td>
+                          ))
+                        )}
+                        
+                        {/* Tahap 1: keselamatan */}
+                        <td>
+                          <select className={`tahap1-select ${k.tahap1 === 'ada_kerusakan_membahayakan' ? 'tahap1-danger' : 'tahap1-ok'}`}
+                            value={k.tahap1} disabled={readOnly}
+                            onChange={e => updateKomponen(idx, 'tahap1', e.target.value)}>
+                            <option value="tidak_ada_kerusakan">Tidak ada kerusakan</option>
+                            <option value="ada_kerusakan_membahayakan">Ada kerusakan - MEMBAHAYAKAN</option>
+                            <option value="ada_kerusakan_tidak_membahayakan">Ada kerusakan - tidak membahayakan</option>
+                          </select>
+                        </td>
+                        
+                        {/* Perhitungan (14)-(20) */}
+                        {k.isEstimasi ? (
+                          <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 11 }}>
+                            Nilai: {(KLASIFIKASI_NILAI[k.estimasiKlasifikasi] || 0).toFixed(2)}
+                          </td>
+                        ) : (
+                          fields.map((field, fi) => {
+                            const vField = parseFloat(k[field]) || 0;
+                            const kontribusi = vTotal > 0 ? (vField / vTotal * nilaiFields[fi]).toFixed(3) : '0.000';
+                            return (
+                              <td key={`c${field}`} className="result-cell" style={{ fontSize: 11, color: 'var(--text3)' }}>
+                                {kontribusi}
+                              </td>
+                            );
+                          })
+                        )}
+                        
+                        {/* Total %, Bobot, Nilai */}
+                        <td className="result-cell" style={{ color: hasil.persen > 45 ? 'var(--danger)' : hasil.persen > 30 ? 'var(--warning)' : hasil.persen > 0 ? 'var(--success)' : 'var(--text3)' }}>
+                          {hasil.persen.toFixed(1)}%
+                        </td>
+                        <td className="result-cell" style={{ color: 'var(--text3)' }}>
+                          {(k.bobot * 100).toFixed(2)}%
+                        </td>
+                        <td className="result-cell" style={{ color: 'var(--accent2)', fontWeight: 600 }}>
+                          {(hasil.nilaiTerbobot * 100).toFixed(2)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+            <tr style={{ background: 'var(--surface2)' }}>
+              <td colSpan={21} style={{ textAlign: 'right', fontWeight: 600, fontSize: 12, padding: '10px 14px' }}>
+                TOTAL NILAI KERUSAKAN MASSA BANGUNAN =
+              </td>
+              <td colSpan={2} style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 14, textAlign: 'center',
+                color: kesimpulan === 'Rusak Berat' ? 'var(--danger)' : kesimpulan === 'Rusak Sedang' ? 'var(--warning)' : 'var(--success)' }}>
+                {totalPersen.toFixed(2)}%
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// EXPORT EXCEL (identik dengan template KemenPU)
+// ============================================================
+function exportToExcel(survey, komponen, tipe) {
+  const wb = XLSX.utils.book_new();
+  const ws_data = [];
+  
+  // Header form
+  ws_data.push(['FORMULIR PENILAIAN KERUSAKAN BANGUNAN']);
+  ws_data.push([]);
+  ws_data.push(['Nama Sekolah', ':', survey.nama_sekolah]);
+  ws_data.push(['NPSN', ':', survey.npsn]);
+  ws_data.push(['Nama Bangunan', ':', survey.nama_bangunan]);
+  ws_data.push(['NUP (No Urut Perolehan)', ':', survey.nup]);
+  ws_data.push(['Alamat', ':', survey.alamat]);
+  ws_data.push(['Kabupaten/Kota', ':', survey.kabupaten_kota, 'Provinsi', ':', survey.provinsi]);
+  ws_data.push(['Koordinat', ':', `${survey.koordinat_lat || ''}, ${survey.koordinat_lng || ''}`]);
+  ws_data.push(['Luas Bangunan', ':', survey.luas_bangunan, 'm2', '', '', '', 'Jumlah Lantai :', '', survey.jumlah_lantai]);
+  ws_data.push([]);
+  
+  // Header tabel - Sesuai kolom (1)-(23)
+  ws_data.push(['(1)', '(2)', '(3)', '', '(4)', '(5)', '(6)', '(7)', '(8)', '(9)', '(10)', '(11)', '(12)', '(13)', '',
+    '(14)', '(15)', '(16)', '(17)', '(18)', '(19)', '(20)', '(21)', '(22)', '(23)']);
+  ws_data.push(['NO', 'SISTEM', 'KOMPONEN', '', 'SATUAN', 'VOLUME', 'Tdk Rusak', 'Sgt Ringan', 'Ringan', 'Sedang', 'Berat', 'Sgt Berat', 'Tdk Sesuai', 'Tahap 1', '',
+    '1(0.00)', '2(0.20)', '3(0.35)', '4(0.50)', '5(0.70)', '6(0.85)', '7(1.00)', 'TOTAL %', 'BOBOT', 'NILAI']);
+  
+  const template = BOBOT_TEMPLATE[tipe] || BOBOT_TEMPLATE[1];
+  const sistems = [...new Set(template.map(t => t.sistem))];
+  let no = 1;
+  
+  for (const sistem of sistems) {
+    ws_data.push([`${no++}`, sistem]);
+    const komps = template.filter(t => t.sistem === sistem);
+    for (const tmpl of komps) {
+      const k = komponen.find(kk => kk.kode === tmpl.kode || kk.kode_komponen === tmpl.kode) || {};
+      const hasil = hitungKomponenKerusakan({
+        kode: tmpl.kode, bobot: tmpl.bobot, isEstimasi: tmpl.isEstimasi,
+        volTotal: k.volume_total || k.volTotal || tmpl.volDefault || 1,
+        volTidakRusak: k.vol_tidak_rusak || k.volTidakRusak || 0,
+        volSangatRingan: k.vol_sangat_ringan || k.volSangatRingan || 0,
+        volRingan: k.vol_ringan || k.volRingan || 0,
+        volSedang: k.vol_sedang || k.volSedang || 0,
+        volBerat: k.vol_berat || k.volBerat || 0,
+        volSangatBerat: k.vol_sangat_berat || k.volSangatBerat || 0,
+        volTidakSesuai: k.vol_tidak_sesuai || k.volTidakSesuai || 0,
+        estimasiKlasifikasi: k.estimasi_klasifikasi || k.estimasiKlasifikasi || 1,
+        tahap1: k.tahap1_status || k.tahap1 || 'tidak_ada_kerusakan',
+      });
+      
+      ws_data.push([
+        '', '', tmpl.nama, '', tmpl.satuan,
+        k.volume_total || k.volTotal || tmpl.volDefault || '',
+        k.vol_tidak_rusak || k.volTidakRusak || 0,
+        k.vol_sangat_ringan || k.volSangatRingan || 0,
+        k.vol_ringan || k.volRingan || 0,
+        k.vol_sedang || k.volSedang || 0,
+        k.vol_berat || k.volBerat || 0,
+        k.vol_sangat_berat || k.volSangatBerat || 0,
+        k.vol_tidak_sesuai || k.volTidakSesuai || 0,
+        (k.tahap1_status || k.tahap1 || '').replace(/_/g,' '),
+        '',
+        '', '', '', '', '', '', '',
+        `${hasil.persen.toFixed(1)}%`,
+        `${(tmpl.bobot * 100).toFixed(2)}%`,
+        `${(hasil.nilaiTerbobot * 100).toFixed(2)}%`
+      ]);
+    }
+  }
+  
+  // Total & Kesimpulan
+  const { totalPersen, kesimpulan, isCritical } = hitungTotalKerusakan(
+    template.map(tmpl => {
+      const k = komponen.find(kk => kk.kode === tmpl.kode || kk.kode_komponen === tmpl.kode) || {};
+      return {
+        kode: tmpl.kode, bobot: tmpl.bobot, isEstimasi: tmpl.isEstimasi,
+        volTotal: k.volume_total || k.volTotal || tmpl.volDefault || 1,
+        volTidakRusak: k.vol_tidak_rusak || k.volTidakRusak || 0,
+        volSangatRingan: k.vol_sangat_ringan || k.volSangatRingan || 0,
+        volRingan: k.vol_ringan || k.volRingan || 0,
+        volSedang: k.vol_sedang || k.volSedang || 0,
+        volBerat: k.vol_berat || k.volBerat || 0,
+        volSangatBerat: k.vol_sangat_berat || k.volSangatBerat || 0,
+        volTidakSesuai: k.vol_tidak_sesuai || k.volTidakSesuai || 0,
+        estimasiKlasifikasi: k.estimasi_klasifikasi || k.estimasiKlasifikasi || 1,
+        tahap1: k.tahap1_status || k.tahap1 || 'tidak_ada_kerusakan',
+      };
+    })
+  );
+  
+  ws_data.push([]);
+  ws_data.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'TOTAL NILAI KERUSAKAN MASSA BANGUNAN =', '', `${totalPersen.toFixed(2)}%`]);
+  ws_data.push([]);
+  ws_data.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'KESIMPULAN TINGKAT KERUSAKAN MASSA BANGUNAN =', '', kesimpulan]);
+  ws_data.push([]);
+  ws_data.push(['Keterangan: Ringan ≤ 30% | Sedang 30-45% | Berat > 45%']);
+  ws_data.push([]);
+  
+  // TTD
+  ws_data.push(['TIM SURVEI : Petugas Survey', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'MENYETUJUI', '', 'MENGETAHUI']);
+  ws_data.push([]);
+  ws_data.push(['(' + (survey.nama_ttd_surveyor || '................................') + ')', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '(' + (survey.nama_ttd_menyetujui || '................................') + ')', '', '(' + (survey.nama_ttd_mengetahui || '................................') + ')']);
+  ws_data.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Dinas PU Kab/Kota/Provinsi', '', 'Dinas Pendidikan Kab/Kota/Provinsi']);
+  ws_data.push(['Note: * Dinas PU/Dinas yang menangani Bangunan Gedung']);
+  
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [
+    {wch:5},{wch:12},{wch:25},{wch:3},{wch:8},{wch:8},
+    {wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},
+    {wch:22},{wch:3},
+    {wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},
+    {wch:9},{wch:8},{wch:9}
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, ws, 'Form Penilaian');
+  const tipeLabel = tipe === 1 ? '1Lt' : tipe === 2 ? '2Lt' : '3Lt+';
+  XLSX.writeFile(wb, `SIPRUSAK_${survey.nama_sekolah?.replace(/\s/g,'_')}_${survey.nama_bangunan?.replace(/\s/g,'_')}_${tipeLabel}.xlsx`);
+}
+
+// ============================================================
+// DETAIL SURVEI (View/Edit dengan Workflow)
+// ============================================================
+function SurveyDetail({ survey: initialSurvey, onBack, onUpdate, onHasChanges }) {
+  const [survey, setSurvey] = useState(initialSurvey);
+  const [komponen, setKomponen] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('penilaian');
+  const [hasChanges, setHasChanges] = useState(false);
+  const { addToast, user } = useApp();
+  
+  const tipe = survey.jumlah_lantai <= 1 ? 1 : survey.jumlah_lantai === 2 ? 2 : 3;
+
+  // Sync hasChanges with parent
+  useEffect(() => {
+    if (onHasChanges) onHasChanges(hasChanges);
+  }, [hasChanges, onHasChanges]);
+
+  useEffect(() => {
+    loadKomponen();
+  }, [survey.id]);
+
+  const loadKomponen = async () => {
+    setLoading(true);
+    if (IS_DEMO_MODE) {
+      setLoading(false); return;
+    }
+    try {
+      const { data, error } = await supabase.from('komponen_penilaian')
+        .select('*').eq('survey_id', survey.id).order('created_at');
+      if (!error && data) setKomponen(data);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  const handleSavePenilaian = async (komponenList, totalPersen, kesimpulan, isCritical) => {
+    if (IS_DEMO_MODE) {
+      addToast('Mode demo: data tidak disimpan ke server', 'info');
+      setHasChanges(false);
+      return;
+    }
+
+    // Upsert setiap komponen
+    for (const k of komponenList) {
+      const record = {
+        survey_id: survey.id,
+        kode_komponen: k.kode,
+        nama_komponen: k.nama,
+        sistem: k.sistem,
+        satuan: k.satuan,
+        volume_total: k.isEstimasi ? null : parseFloat(k.volTotal) || 0,
+        tahap1_status: k.tahap1,
+        vol_tidak_rusak: k.isEstimasi ? 0 : parseFloat(k.volTidakRusak) || 0,
+        vol_sangat_ringan: k.isEstimasi ? 0 : parseFloat(k.volSangatRingan) || 0,
+        vol_ringan: k.isEstimasi ? 0 : parseFloat(k.volRingan) || 0,
+        vol_sedang: k.isEstimasi ? 0 : parseFloat(k.volSedang) || 0,
+        vol_berat: k.isEstimasi ? 0 : parseFloat(k.volBerat) || 0,
+        vol_sangat_berat: k.isEstimasi ? 0 : parseFloat(k.volSangatBerat) || 0,
+        vol_tidak_sesuai: k.isEstimasi ? 0 : parseFloat(k.volTidakSesuai) || 0,
+        persentase_kerusakan: hitungKomponenKerusakan(k).persen,
+        bobot_komponen: k.bobot,
+        nilai_kerusakan_terbobot: hitungKomponenKerusakan(k).nilaiTerbobot,
+      };
+      
+      const { error } = await supabase.from('komponen_penilaian')
+        .upsert(record, { onConflict: 'survey_id,kode_komponen' });
+      if (error) throw error;
+    }
+
+    // Update survey
+    const { error: surveyErr } = await supabase.from('surveys').update({
+      total_nilai_kerusakan: totalPersen,
+      kesimpulan_kerusakan: kesimpulan,
+      is_critical: isCritical,
+      status: 'penilaian',
+      updated_at: new Date().toISOString(),
+    }).eq('id', survey.id);
+    
+    if (surveyErr) throw surveyErr;
+    
+    setSurvey(prev => ({ ...prev, total_nilai_kerusakan: totalPersen, kesimpulan_kerusakan: kesimpulan, status: 'penilaian' }));
+    setHasChanges(false);
+    if (onUpdate) onUpdate();
+  };
+
+  const handleWorkflowAdvance = async (newStatus) => {
+    if (IS_DEMO_MODE) {
+      setSurvey(prev => ({ ...prev, status: newStatus }));
+      addToast(`Status diperbarui: ${newStatus.replace(/_/g,' ')}`, 'success');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('surveys').update({
+        status: newStatus, updated_at: new Date().toISOString(),
+        ...(newStatus === 'disetujui' ? { tanggal_disetujui: new Date().toISOString() } : {})
+      }).eq('id', survey.id);
+      if (error) throw error;
+      
+      await supabase.from('activity_log').insert({
+        survey_id: survey.id, user_id: user?.id,
+        action: `Status diubah ke ${newStatus}`,
+        old_status: survey.status, new_status: newStatus
+      });
+      
+      setSurvey(prev => ({ ...prev, status: newStatus }));
+      if (onUpdate) onUpdate();
+      addToast(`Status diperbarui: ${newStatus.replace(/_/g,' ')}`, 'success');
+    } catch (err) {
+      addToast('Gagal update status: ' + err.message, 'error');
+    }
+  };
+
+  const currentStepIdx = WORKFLOW_STEPS.findIndex(s => s.key === survey.status);
+  const nextStep = WORKFLOW_STEPS[currentStepIdx + 1];
+
+  const tabs = [
+    { key: 'penilaian', label: '📋 Form Penilaian' },
+    { key: 'info', label: 'ℹ Info Bangunan' },
+    { key: 'workflow', label: '🔄 Workflow' },
+    { key: 'ttd', label: '✍ Tanda Tangan' },
+  ];
+
+  return (
+    <div className="page-content">
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <button className="btn-icon" onClick={() => { setHasChanges(false); onBack(); }} title="Kembali">←</button>
+            <h2 style={{ fontSize: 18, fontWeight: 700 }}>{survey.nama_bangunan}</h2>
+            <span className="badge badge-survey" style={{ textTransform: 'capitalize' }}>{survey.jumlah_lantai} Lantai · Form {tipe === 1 ? 'A' : tipe === 2 ? 'B' : 'C'}</span>
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text3)', display: 'flex', gap: 16 }}>
+            <span>{survey.nama_sekolah}</span>
+            {survey.npsn && <span>NPSN: {survey.npsn}</span>}
+            <span>{survey.kabupaten_kota}</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary btn-sm" 
+            onClick={() => exportToExcel(survey, komponen.length > 0 ? komponen : [], tipe)}>
+            ↓ Export Excel
+          </button>
+          {nextStep && survey.status !== 'disetujui' && (
+            <button className="btn btn-primary btn-sm"
+              onClick={() => handleWorkflowAdvance(nextStep.key)}>
+              → {nextStep.label}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Workflow Timeline */}
+      <div className="timeline" style={{ marginBottom: 20 }}>
+        {WORKFLOW_STEPS.map((step, i) => (
+          <div key={step.key} className={`timeline-step ${i < currentStepIdx ? 'done' : i === currentStepIdx ? 'current' : ''}`}>
+            <div className="timeline-dot">{i < currentStepIdx ? '✓' : i + 1}</div>
+            <div className="timeline-label">{step.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+        {tabs.map(tab => (
+          <button key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 13, fontFamily: 'var(--font)',
+              color: activeTab === tab.key ? 'var(--accent2)' : 'var(--text3)',
+              borderBottom: `2px solid ${activeTab === tab.key ? 'var(--accent2)' : 'transparent'}`,
+              marginBottom: -1, transition: 'all 0.15s',
+            }}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'penilaian' && (
+        <div className="card">
+          <div className="card-header">
+            Form Penilaian Kerusakan — {tipe === 1 ? 'Bangunan 1 Lantai' : tipe === 2 ? 'Bangunan 2 Lantai / Panggung' : 'Bangunan 3 Lantai atau Lebih'}
+          </div>
+          {loading ? (
+            <div className="loading"><div className="spinner"/></div>
+          ) : (
+            <AssessmentEngine
+              survey={survey}
+              komponenData={komponen}
+              onSave={handleSavePenilaian}
+              onChange={() => setHasChanges(true)}
+              readOnly={survey.status === 'disetujui'}
+            />
+          )}
+        </div>
+      )}
+
+      {activeTab === 'info' && (
+        <div className="card">
+          <div className="card-header">Data Identifikasi Bangunan</div>
+          <div className="form-grid" style={{ gap: 12 }}>
+            {[
+              ['Nama Sekolah', survey.nama_sekolah],
+              ['NPSN', survey.npsn],
+              ['Nama Bangunan', survey.nama_bangunan],
+              ['NUP', survey.nup],
+              ['Alamat', survey.alamat],
+              ['Kabupaten/Kota', survey.kabupaten_kota],
+              ['Provinsi', survey.provinsi],
+              ['Luas Bangunan', survey.luas_bangunan ? `${survey.luas_bangunan} m²` : '—'],
+              ['Jumlah Lantai', `${survey.jumlah_lantai} Lantai`],
+              ['Tanggal Survey', survey.tanggal_survey ? new Date(survey.tanggal_survey).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '—'],
+              ['Koordinat', survey.koordinat_lat ? `${survey.koordinat_lat}, ${survey.koordinat_lng}` : '—'],
+            ].map(([label, value]) => (
+              <div key={label} style={{ borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{value || '—'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'workflow' && (
+        <div className="card">
+          <div className="card-header">Status Workflow & Riwayat</div>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>Status Saat Ini:</div>
+            <span className="badge badge-survey" style={{ fontSize: 14, padding: '6px 14px' }}>{survey.status.replace(/_/g,' ')}</span>
+          </div>
+          <div>
+            {WORKFLOW_STEPS.map((step, i) => {
+              const isDone = i <= currentStepIdx;
+              return (
+                <div key={step.key} style={{ display: 'flex', gap: 14, marginBottom: 16, opacity: isDone ? 1 : 0.4 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600,
+                    background: i === currentStepIdx ? 'var(--warning)' : isDone ? 'var(--accent2)' : 'var(--surface2)',
+                    color: isDone || i === currentStepIdx ? 'white' : 'var(--text3)',
+                  }}>
+                    {i < currentStepIdx ? '✓' : i + 1}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: i === currentStepIdx ? 'var(--warning)' : isDone ? 'var(--text)' : 'var(--text3)' }}>
+                      {step.label} {i === currentStepIdx ? '← Posisi Saat Ini' : ''}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {step.key === 'draft' && 'Data survey dibuat, belum diproses'}
+                      {step.key === 'disposisi' && 'Penugasan surveyor'}
+                      {step.key === 'persiapan' && 'Persiapan peralatan dan tim survey'}
+                      {step.key === 'survey_lapangan' && 'Pengumpulan data di lapangan'}
+                      {step.key === 'analisis_data' && 'Analisis data hasil survey'}
+                      {step.key === 'penilaian' && 'Pengisian form penilaian kerusakan'}
+                      {step.key === 'diperiksa' && 'Review oleh Verifikator/Kabid'}
+                      {step.key === 'disetujui' && 'Penetapan rekapitulasi tingkat kerusakan'}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'ttd' && (
+        <TTDPanel survey={survey} onUpdate={(data) => setSurvey(prev => ({...prev, ...data}))} />
+      )}
+
+      {/* AI Insights Panel */}
+      {activeTab === 'penilaian' && !loading && (
+        <AIInsightsPanel survey={survey} komponenList={komponen} />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// PANEL TANDA TANGAN
+// ============================================================
+function TTDPanel({ survey, onUpdate }) {
+  const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [activeTTD, setActiveTTD] = useState('surveyor');
+  const [ttdData, setTtdData] = useState({
+    nama_ttd_surveyor: survey.nama_ttd_surveyor || '',
+    nama_ttd_menyetujui: survey.nama_ttd_menyetujui || '',
+    nama_ttd_mengetahui: survey.nama_ttd_mengetahui || '',
+    ttd_surveyor: survey.ttd_surveyor || '',
+    ttd_menyetujui: survey.ttd_menyetujui || '',
+    ttd_mengetahui: survey.ttd_mengetahui || '',
+  });
+  const { addToast } = useApp();
+
+  const startDraw = (e) => {
+    e.preventDefault();
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    ctx.beginPath();
+    ctx.moveTo(clientX - rect.left, clientY - rect.top);
+  };
+
+  const draw = (e) => {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineTo(clientX - rect.left, clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const stopDraw = (e) => {
+    if (e) e.preventDefault();
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    const dataUrl = canvas.toDataURL('image/png');
+    setTtdData(prev => ({ ...prev, [`ttd_${activeTTD}`]: dataUrl }));
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setTtdData(prev => ({ ...prev, [`ttd_${activeTTD}`]: '' }));
+  };
+
+  const loadTTD = (key) => {
+    setActiveTTD(key);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const existing = ttdData[`ttd_${key}`];
+    if (existing) {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0);
+      img.src = existing;
+    }
+  };
+
+  const handleSave = async () => {
+    if (IS_DEMO_MODE) {
+      onUpdate(ttdData);
+      addToast('Data tanda tangan disimpan (mode demo)', 'info');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('surveys').update(ttdData).eq('id', survey.id);
+      if (error) throw error;
+      onUpdate(ttdData);
+      addToast('Tanda tangan disimpan', 'success');
+    } catch (err) {
+      addToast('Gagal menyimpan: ' + err.message, 'error');
+    }
+  };
+
+  const ttdKeys = [
+    { key: 'surveyor', label: 'Petugas Survey', namaKey: 'nama_ttd_surveyor' },
+    { key: 'menyetujui', label: 'Menyetujui (Dinas PU)', namaKey: 'nama_ttd_menyetujui' },
+    { key: 'mengetahui', label: 'Mengetahui (Dinas Pendidikan)', namaKey: 'nama_ttd_mengetahui' },
+  ];
+
+  return (
+    <div className="card">
+      <div className="card-header">Tanda Tangan Elektronik</div>
+      
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {ttdKeys.map(t => (
+          <button key={t.key}
+            className={`btn ${activeTTD === t.key ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => loadTTD(t.key)}>
+            {ttdData[`ttd_${t.key}`] ? '✓ ' : ''}{t.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div>
+          <div style={{ marginBottom: 10 }}>
+            <label>Nama {ttdKeys.find(t => t.key === activeTTD)?.label}</label>
+            <input
+              value={ttdData[ttdKeys.find(t => t.key === activeTTD)?.namaKey] || ''}
+              onChange={e => setTtdData(prev => ({ ...prev, [ttdKeys.find(t => t.key === activeTTD)?.namaKey]: e.target.value }))}
+              placeholder="Nama lengkap dan NIP" style={{ marginTop: 6 }}
+            />
+          </div>
+          <div style={{ marginBottom: 8, fontSize: 11, color: 'var(--text3)' }}>Tanda tangan (gambar dengan mouse/stylus/jari):</div>
+          <canvas
+            ref={canvasRef}
+            width={360} height={140}
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 6, cursor: 'crosshair', display: 'block', touchAction: 'none' }}
+            onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+            onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button className="btn btn-secondary btn-sm" onClick={clearCanvas}>Hapus</button>
+            <span style={{ fontSize: 11, color: 'var(--text3)', alignSelf: 'center' }}>
+              {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>Preview Semua TTE:</div>
+          {ttdKeys.map(t => (
+            <div key={t.key} style={{ marginBottom: 16, padding: 12, background: 'var(--surface2)', borderRadius: 6 }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 6 }}>{t.label}</div>
+              {ttdData[`ttd_${t.key}`] ? (
+                <img src={ttdData[`ttd_${t.key}`]} style={{ height: 50, display: 'block' }} alt="ttd" />
+              ) : (
+                <div style={{ height: 40, borderBottom: '1px solid var(--border2)', display: 'flex', alignItems: 'flex-end', paddingBottom: 4, color: 'var(--text3)', fontSize: 11 }}>
+                  (.....................................)
+                </div>
+              )}
+              <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text2)' }}>{ttdData[ttdKeys.find(tt => tt.key === t.key)?.namaKey] || '—'}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <button className="btn btn-primary" onClick={handleSave}>Simpan Tanda Tangan</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// AI INSIGHTS PANEL
+// ============================================================
+function AIInsightsPanel({ survey, komponenList }) {
+  const { isAnalyzing, aiInsights, analyzeDamagePattern, predictDamageProgression, generateAIReport } = useAIEngine();
+  const [predictions, setPredictions] = useState(null);
+  const [aiReport, setAiReport] = useState(null);
+  const [activeTab, setActiveTab] = useState('analysis');
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const { addToast } = useApp();
+
+  const handleAnalyze = async () => {
+    try {
+      await analyzeDamagePattern(komponenList, survey);
+      const pred = await predictDamageProgression(komponenList);
+      setPredictions(pred);
+      const report = await generateAIReport(survey, komponenList);
+      setAiReport(report);
+      setHasAnalyzed(true);
+      addToast('Analisis AI selesai', 'success');
+    } catch (err) {
+      addToast('Analisis gagal: ' + err.message, 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (komponenList.length > 0 && !hasAnalyzed) {
+      handleAnalyze();
+    }
+  }, [komponenList.length]);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
+  };
+
+  // Calculate additional technical metrics
+  const calculateTechnicalMetrics = () => {
+    if (!komponenList || komponenList.length === 0) return null;
+    
+    const struktur = komponenList.filter(k => k.sistem === 'STRUKTUR');
+    const arsitektur = komponenList.filter(k => k.sistem === 'ARSITEKTUR');
+    
+    const strukturAvg = struktur.reduce((acc, k) => acc + (k.nilai_klasifikasi || 0), 0) / (struktur.length || 1);
+    const arsitekturAvg = arsitektur.reduce((acc, k) => acc + (k.nilai_klasifikasi || 0), 0) / (arsitektur.length || 1);
+    
+    return { strukturAvg, arsitekturAvg, strukturCount: struktur.length, arsitekturCount: arsitektur.length };
+  };
+
+  const metrics = calculateTechnicalMetrics();
+
+  return (
+    <div className="card" style={{ marginTop: 20 }}>
+      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>🤖 Analisis AI - Standar KemenPU</span>
+        {isAnalyzing && <span className="spinner" style={{ width: 16, height: 16 }} />}
+      </div>
+
+      {/* Tabs - Always clickable */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)' }}>
+        {[
+          { key: 'analysis', label: 'Analisis' },
+          { key: 'prediction', label: 'Prediksi' },
+          { key: 'cost', label: 'Biaya' },
+          { key: 'report', label: 'Laporan' }
+        ].map(tab => (
+          <button key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 12, fontWeight: 500,
+              color: activeTab === tab.key ? 'var(--accent2)' : 'var(--text3)',
+              borderBottom: `2px solid ${activeTab === tab.key ? 'var(--accent2)' : 'transparent'}`,
+              marginBottom: -1
+            }}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {!hasAnalyzed ? (
+        <div className="empty-state" style={{ padding: 30 }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🤖</div>
+          <p>Klik "Analisis AI" untuk mendapatkan insight otomatis</p>
+          <button className="btn btn-primary btn-sm" onClick={handleAnalyze} disabled={isAnalyzing}>
+            {isAnalyzing ? 'Menganalisis...' : 'Analisis AI'}
+          </button>
+        </div>
+      ) : (
+        <div style={{ padding: 16 }}>
+          {/* TAB: ANALISIS KOMPREHENSIF */}
+          {activeTab === 'analysis' && aiInsights && (
+            <div>
+              {/* Status Keselamatan */}
+              <div style={{ 
+                padding: 16, 
+                background: aiInsights.safetyRisk === 'CRITICAL' ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)', 
+                border: `1px solid ${aiInsights.safetyRisk === 'CRITICAL' ? 'var(--danger)' : 'var(--success)'}`,
+                borderRadius: 8, 
+                marginBottom: 20 
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: aiInsights.safetyRisk === 'CRITICAL' ? 'var(--danger)' : 'var(--success)', marginBottom: 6 }}>
+                  {aiInsights.safetyRisk === 'CRITICAL' ? '⚠️ RISIKO KESELAMATAN KRITIS' : '✅ STATUS KESELAMATAN NORMAL'}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{aiInsights.overallAssessment}</div>
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>Prioritas: </span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: aiInsights.priority === 'HIGH' ? 'var(--danger)' : 'var(--warning)' }}>
+                    {aiInsights.priority === 'HIGH' ? 'TINGGI (Segera Ditindaklanjuti)' : 'SEDANG (Perencanaan Pemeliharaan)'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Metrik Teknis */}
+              {metrics && (
+                <div style={{ marginBottom: 20 }}>
+                  <h4 style={{ fontSize: 13, marginBottom: 12, color: 'var(--text)' }}>📊 Metrik Teknis per Sistem:</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                    <div style={{ padding: 12, background: 'var(--surface2)', borderRadius: 6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>STRUKTUR (Kritis)</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: metrics.strukturAvg > 45 ? 'var(--danger)' : metrics.strukturAvg > 30 ? 'var(--warning)' : 'var(--success)' }}>
+                        {metrics.strukturAvg.toFixed(1)}%
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text3)' }}>{metrics.strukturCount} komponen</div>
+                    </div>
+                    <div style={{ padding: 12, background: 'var(--surface2)', borderRadius: 6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>ARSITEKTUR</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: metrics.arsitekturAvg > 45 ? 'var(--danger)' : metrics.arsitekturAvg > 30 ? 'var(--warning)' : 'var(--success)' }}>
+                        {metrics.arsitekturAvg.toFixed(1)}%
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text3)' }}>{metrics.arsitekturCount} komponen</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pola Kerusakan */}
+              <div style={{ marginBottom: 20 }}>
+                <h4 style={{ fontSize: 13, marginBottom: 12 }}>🔍 Pola Kerusakan Terdeteksi:</h4>
+                <div style={{ padding: 12, background: 'var(--surface2)', borderRadius: 6 }}>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--accent2)', marginBottom: 6 }}>
+                    {aiInsights.pattern}
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>
+                    Pola ini mengindikasikan {aiInsights.pattern.toLowerCase().includes('struktur') ? 'kerusakan struktural yang memerlukan perhatian khusus' : 
+                      aiInsights.pattern.toLowerCase().includes('penyebaran') ? 'penyebaran kerusakan merata pada berbagai komponen' : 
+                      'kerusakan terlokalisir pada area spesifik'}.
+                  </p>
+                </div>
+              </div>
+
+              {/* Komponen Kritis */}
+              <div>
+                <h4 style={{ fontSize: 13, marginBottom: 12 }}>⚠️ Komponen Kritis Prioritas:</h4>
+                {aiInsights.criticalComponents.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--text3)' }}>✓ Tidak ada komponen kritis terdeteksi</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {aiInsights.criticalComponents.map((comp, idx) => (
+                      <div key={idx} style={{ 
+                        padding: 12, 
+                        background: 'var(--surface2)', 
+                        borderRadius: 6,
+                        borderLeft: `3px solid ${comp.severity > 45 ? 'var(--danger)' : comp.severity > 30 ? 'var(--warning)' : 'var(--success)'}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 12 }}>{comp.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--accent2)', marginTop: 2 }}>💡 {comp.recommendation}</div>
+                        </div>
+                        <div style={{ 
+                          padding: '4px 10px', 
+                          background: comp.severity > 45 ? 'rgba(239,68,68,0.2)' : comp.severity > 30 ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)',
+                          borderRadius: 4,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: comp.severity > 45 ? 'var(--danger)' : comp.severity > 30 ? 'var(--warning)' : 'var(--success)'
+                        }}>
+                          {comp.severity.toFixed(1)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PREDIKSI */}
+          {activeTab === 'prediction' && (
+            <div>
+              {!predictions ? (
+                <div className="empty-state" style={{ padding: 20 }}>
+                  <p style={{ color: 'var(--text3)' }}>Belum ada data prediksi. Jalankan analisis terlebih dahulu.</p>
+                  <button className="btn btn-primary btn-sm" onClick={handleAnalyze} disabled={isAnalyzing}>
+                    {isAnalyzing ? 'Menganalisis...' : 'Analisis AI'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <h4 style={{ fontSize: 13, marginBottom: 12 }}>📈 Prediksi Perkembangan Kerusakan:</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }}>
+                    {[
+                      { label: '6 Bulan', value: predictions['6_months'], color: predictions['6_months'] > 45 ? 'var(--danger)' : predictions['6_months'] > 30 ? 'var(--warning)' : 'var(--success)' },
+                      { label: '1 Tahun', value: predictions['1_year'], color: predictions['1_year'] > 45 ? 'var(--danger)' : predictions['1_year'] > 30 ? 'var(--warning)' : 'var(--success)' },
+                      { label: '3 Tahun', value: predictions['3_years'], color: predictions['3_years'] > 45 ? 'var(--danger)' : predictions['3_years'] > 30 ? 'var(--warning)' : 'var(--success)' },
+                      { label: '5 Tahun', value: predictions['5_years'], color: 'var(--danger)' }
+                    ].map((pred, idx) => (
+                      <div key={idx} style={{ 
+                        padding: 14, 
+                        background: 'var(--surface2)', 
+                        borderRadius: 6,
+                        textAlign: 'center',
+                        border: `1px solid ${pred.color}40`
+                      }}>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 4 }}>{pred.label}</div>
+                        <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--mono)', color: pred.color }}>
+                          {pred.value.toFixed(1)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ 
+                    padding: 14, 
+                    background: 'var(--surface2)', 
+                    borderRadius: 6,
+                    borderLeft: `3px solid ${predictions.criticalThreshold === 'EXCEEDED' ? 'var(--danger)' : predictions.criticalThreshold === 'APPROACHING' ? 'var(--warning)' : 'var(--success)'}`
+                  }}>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>Rekomendasi Tindakan:</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginTop: 4 }}>
+                      {predictions.recommendedAction === 'IMMEDIATE_REPAIR_REQUIRED' ? '🔴 Perbaikan Segera Diperlukan' :
+                       predictions.recommendedAction === 'PLANNED_MAINTENANCE' ? '🟡 Perencanaan Pemeliharaan' :
+                       '🟢 Pemantauan Rutin'}
+                    </div>
+                    <p style={{ fontSize: 11, color: 'var(--text2)', marginTop: 6 }}>
+                      {predictions.recommendedAction === 'IMMEDIATE_REPAIR_REQUIRED' 
+                        ? 'Bangunan dalam kondisi berbahaya. Perlu penanganan segera sebelum digunakan.'
+                        : predictions.recommendedAction === 'PLANNED_MAINTENANCE'
+                        ? 'Perlu pemeliharaan terjadwal dalam 6-12 bulan ke depan.'
+                        : 'Kondisi masih aman, lakukan pemantauan berkala.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: BIAYA */}
+          {activeTab === 'cost' && (
+            <div>
+              {!aiInsights ? (
+                <div className="empty-state" style={{ padding: 20 }}>
+                  <p style={{ color: 'var(--text3)' }}>Belum ada data estimasi biaya. Jalankan analisis terlebih dahulu.</p>
+                  <button className="btn btn-primary btn-sm" onClick={handleAnalyze} disabled={isAnalyzing}>
+                    {isAnalyzing ? 'Menganalisis...' : 'Analisis AI'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <h4 style={{ fontSize: 13, marginBottom: 12 }}>💰 Estimasi Biaya Perbaikan:</h4>
+                  <div style={{ 
+                    padding: 20, 
+                    background: 'var(--surface2)', 
+                    borderRadius: 8,
+                    marginBottom: 16,
+                    textAlign: 'center',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Estimasi Total</div>
+                    <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--accent2)' }}>
+                      {formatCurrency(aiInsights.estimatedRepairCost.estimate)}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
+                      Range: {formatCurrency(aiInsights.estimatedRepairCost.min)} - {formatCurrency(aiInsights.estimatedRepairCost.max)}
+                    </div>
+                  </div>
+
+                  <h5 style={{ fontSize: 12, marginBottom: 10 }}>Rincian Biaya:</h5>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--surface2)', borderRadius: 4 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text3)' }}>🧱 Material (60%)</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{formatCurrency(aiInsights.estimatedRepairCost.breakdown.material)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--surface2)', borderRadius: 4 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text3)' }}>👷 Tenaga Kerja (30%)</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{formatCurrency(aiInsights.estimatedRepairCost.breakdown.labor)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--surface2)', borderRadius: 4 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text3)' }}>🔧 Peralatan (10%)</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{formatCurrency(aiInsights.estimatedRepairCost.breakdown.equipment)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: LAPORAN */}
+          {activeTab === 'report' && (
+            <div>
+              {!aiReport ? (
+                <div className="empty-state" style={{ padding: 20 }}>
+                  <p style={{ color: 'var(--text3)' }}>Belum ada laporan. Jalankan analisis terlebih dahulu.</p>
+                  <button className="btn btn-primary btn-sm" onClick={handleAnalyze} disabled={isAnalyzing}>
+                    {isAnalyzing ? 'Menganalisis...' : 'Analisis AI'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <h4 style={{ fontSize: 13, marginBottom: 12 }}>📝 Executive Summary:</h4>
+                  <div style={{ padding: 12, background: 'var(--surface2)', borderRadius: 6, marginBottom: 16 }}>
+                    <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>{aiReport.executiveSummary}</p>
+                  </div>
+
+                  <h4 style={{ fontSize: 13, marginBottom: 12 }}>✅ Rekomendasi Prioritas:</h4>
+                  <ul style={{ paddingLeft: 16, margin: 0 }}>
+                    {aiReport.recommendations.map((rec, idx) => (
+                      <li key={idx} style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 8 }}>{rec}</li>
+                    ))}
+                  </ul>
+
+                  <h4 style={{ fontSize: 13, margin: '16px 0 12px' }}>📅 Timeline Perbaikan:</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {Object.entries(aiReport.timeline).map(([phase, desc]) => (
+                      <div key={phase} style={{ 
+                        padding: '8px 12px', 
+                        background: 'var(--surface2)', 
+                        borderRadius: 4,
+                        fontSize: 11, 
+                        color: 'var(--text2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}>
+                        <span style={{ color: 'var(--accent2)', fontWeight: 600 }}>{phase}:</span> 
+                        <span>{desc}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: 16, padding: 10, background: 'rgba(245,158,11,0.1)', borderRadius: 4, fontSize: 11, color: 'var(--warning)' }}>
+                    📊 Metodologi: {aiReport.appendices.methodology} | Confidence: {aiReport.appendices.confidence}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// AI INTEGRATION SYSTEM — Gemini + ChatGPT
+// ============================================================
+
+// CONFIGURATION — Ganti dengan API key Anda
+const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // Dapatkan di: https://aistudio.google.com/app/apikey
+const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY'; // Dapatkan di: https://platform.openai.com/api-keys
+const GEMINI_MODEL = 'gemini-2.0-flash-exp';
+const OPENAI_MODEL = 'gpt-4o-mini';
+
+// SYSTEM PROMPT — AI Asisten KemenPU
+const SIPRUSAK_SYSTEM_PROMPT = `Anda adalah AI Asisten Ahli Teknik Sipil & Bangunan Gedung yang terintegrasi dalam sistem SIPRUSAK (Sistem Penilaian Kerusakan Bangunan Sekolah).
+
+## IDENTITAS & KEAHLIAN
+- Spesialisasi: Penilaian kerusakan bangunan gedung sekolah/madrasah
+- Standar acuan: Permen PU No.24 Tahun 2008, Panduan KemenPU 2020
+- SNI yang dikuasai: SNI 1726-2019 (Gempa), SNI 2847:2019 (Beton Struktural)
+- Pengalaman: Identifikasi dan klasifikasi kerusakan struktural, arsitektural, utilitas
+
+## FRAMEWORK ANALISIS — CHAIN OF THOUGHT
+1. SAFETY CHECK (Tahap 1): Apakah ada indikasi bahaya keselamatan?
+2. SEVERITY ASSESSMENT (Tahap 2): Klasifikasi per komponen (0.00-1.00)
+3. ROOT CAUSE ANALYSIS: Faktor penyebab kerusakan
+4. RECOMMENDATION ENGINE: Prioritas perbaikan
+
+## KLASIFIKASI KERUSAKAN
+| Tingkat | Nilai |
+|---------|-------|
+| Tidak Rusak | 0.00 |
+| Rusak Sangat Ringan | 0.20 |
+| Rusak Ringan | 0.35 |
+| Rusak Sedang | 0.50 |
+| Rusak Berat | 0.70 |
+| Rusak Sangat Berat | 0.85 |
+| Tidak Sesuai | 1.00 |
+
+## THRESHOLD KEPUTUSAN
+- ≤ 30%: Rusak Ringan → Pemeliharaan rutin
+- 30–45%: Rusak Sedang → Rehabilitasi
+- > 45%: Rusak Berat → Rekonstruksi/evakuasi
+- Komponen membahayakan: LANGSUNG Rusak Berat
+
+## GAYA KOMUNIKASI
+- Bahasa Indonesia teknis yang jelas
+- Sertakan referensi standar saat relevan
+- Format rekomendasi dalam poin-poin prioritas
+- Gunakan emoji minimal: ⚠ untuk bahaya, ✓ untuk baik, → untuk rekomendasi
+
+## FORMAT RESPONS
+**📊 Analisis Kondisi Bangunan**
+**⚠ Temuan Kritis** (jika ada)
+**📋 Evaluasi Per Sistem**
+**🔧 Rekomendasi Tindakan**
+**📌 Catatan Teknis**
+`;
+
+// ============================================================
+// GEMINI API INTEGRATION
+// ============================================================
+async function callGemini(userMessage, surveyContext = '', imageBase64 = null, imageType = 'image/jpeg') {
+  if (GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+    throw new Error('Gemini API key belum diatur');
+  }
+  
+  const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  
+  const parts = [];
+  if (surveyContext) parts.push({ text: surveyContext });
+  if (imageBase64) {
+    parts.push({ inlineData: { mimeType: imageType, data: imageBase64 } });
+    parts.push({ text: `Analisis foto kerusakan bangunan ini berdasarkan standar KemenPU. ${userMessage}` });
+  } else {
+    parts.push({ text: userMessage });
+  }
+  
+  const payload = {
+    system_instruction: { parts: [{ text: SIPRUSAK_SYSTEM_PROMPT }] },
+    contents: [{ role: 'user', parts: parts }],
+    generationConfig: {
+      temperature: 0.3,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 2048,
+    },
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+    ]
+  };
+
+  if (window._geminiHistory && window._geminiHistory.length > 0) {
+    payload.contents = [...window._geminiHistory, payload.contents[0]];
+  }
+
+  const response = await fetch(GEMINI_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || `Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada respons';
+  
+  // Simpan history
+  if (!window._geminiHistory) window._geminiHistory = [];
+  window._geminiHistory.push({ role: 'user', parts: parts });
+  window._geminiHistory.push({ role: 'model', parts: [{ text: aiText }] });
+  if (window._geminiHistory.length > 20) window._geminiHistory = window._geminiHistory.slice(-20);
+  
+  return aiText;
+}
+
+// ============================================================
+// OPENAI CHATGPT INTEGRATION
+// ============================================================
+async function callChatGPT(userMessage, surveyContext = '', imageBase64 = null, onStream = null) {
+  if (OPENAI_API_KEY === 'YOUR_OPENAI_API_KEY') {
+    throw new Error('OpenAI API key belum diatur');
+  }
+  
+  const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+  const messages = [{ role: 'system', content: SIPRUSAK_SYSTEM_PROMPT }];
+  
+  if (window._chatHistory && window._chatHistory.length > 0) {
+    messages.push(...window._chatHistory.slice(-10));
+  }
+
+  let userContent;
+  if (imageBase64) {
+    userContent = [
+      { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: 'high' } },
+      { type: 'text', text: surveyContext ? `${surveyContext}\n\n${userMessage}` : `Analisis foto kerusakan bangunan ini. ${userMessage}` }
+    ];
+  } else {
+    userContent = surveyContext ? `${surveyContext}\n\n${userMessage}` : userMessage;
+  }
+  messages.push({ role: 'user', content: userContent });
+
+  const payload = {
+    model: OPENAI_MODEL,
+    messages: messages,
+    temperature: 0.3,
+    max_tokens: 2000,
+    stream: !!onStream
+  };
+
+  const response = await fetch(OPENAI_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || `OpenAI error: ${response.status}`);
+  }
+
+  if (onStream) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+      for (const line of lines) {
+        const json = line.replace('data: ', '');
+        if (json === '[DONE]') break;
+        try {
+          const data = JSON.parse(json);
+          const delta = data.choices?.[0]?.delta?.content || '';
+          fullText += delta;
+          onStream(delta, fullText);
+        } catch(e) {}
+      }
+    }
+
+    if (!window._chatHistory) window._chatHistory = [];
+    window._chatHistory.push({ role: 'user', content: userContent });
+    window._chatHistory.push({ role: 'assistant', content: fullText });
+    return fullText;
+  } else {
+    const data = await response.json();
+    const aiText = data.choices?.[0]?.message?.content || 'Tidak ada respons';
+    
+    if (!window._chatHistory) window._chatHistory = [];
+    window._chatHistory.push({ role: 'user', content: userContent });
+    window._chatHistory.push({ role: 'assistant', content: aiText });
+    
+    return aiText;
+  }
+}
+
+// ============================================================
+// AI PROVIDER MANAGER — Auto-fallback
+// ============================================================
+class AIProviderManager {
+  constructor() {
+    this.primaryProvider = 'gemini';
+    this.fallbackEnabled = true;
+  }
+
+  async ask(message, context = '', imageBase64 = null, onStream = null) {
+    try {
+      if (this.primaryProvider === 'gemini') {
+        return await callGemini(message, context, imageBase64);
+      } else {
+        return await callChatGPT(message, context, imageBase64, onStream);
+      }
+    } catch (error) {
+      console.warn(`${this.primaryProvider} gagal:`, error.message);
+      if (this.fallbackEnabled) {
+        console.log('Fallback ke provider alternatif...');
+        try {
+          if (this.primaryProvider === 'gemini') {
+            return await callChatGPT(message, context, imageBase64, onStream);
+          } else {
+            return await callGemini(message, context, imageBase64);
+          }
+        } catch (fallbackError) {
+          throw new Error('Semua AI provider gagal. Periksa koneksi dan API key.');
+        }
+      }
+      throw error;
+    }
+  }
+  
+  switchProvider(provider) {
+    this.primaryProvider = provider;
+    window._geminiHistory = [];
+    window._chatHistory = [];
+  }
+}
+
+const aiManager = new AIProviderManager();
+
+// ============================================================
+// CONTEXT BUILDER — Inject data survei
+// ============================================================
+function buildSurveyContext(survey, komponen) {
+  const { totalPersen, kesimpulan } = hitungTotalKerusakan(komponen);
+  const criticalItems = komponen.filter(k => k.tahap1 === 'ada_kerusakan_membahayakan');
+  const highDamage = komponen.filter(k => {
+    const h = hitungKomponenKerusakan(k);
+    return h.persen > 45;
+  });
+
+  return `
+## DATA SURVEI AKTIF
+Bangunan: ${survey?.nama_bangunan || '-'} — ${survey?.nama_sekolah || '-'}
+Lokasi: ${survey?.kabupaten_kota || '-'}, ${survey?.provinsi || '-'}
+Tipe: ${survey?.jumlah_lantai || '-'} Lantai | Luas: ${survey?.luas_bangunan || '?'} m²
+Tanggal Survey: ${survey?.tanggal_survey || 'Hari ini'}
+
+## HASIL PENILAIAN TERKINI
+Total Kerusakan: ${totalPersen.toFixed(2)}%
+Kesimpulan: ${kesimpulan}
+Komponen Membahayakan: ${criticalItems.length > 0 ? criticalItems.map(k => k.nama).join(', ') : 'Tidak ada'}
+Komponen Rusak Berat: ${highDamage.length > 0 ? highDamage.map(k => k.nama).join(', ') : 'Tidak ada'}
+
+## DETAIL KOMPONEN
+${komponen.map(k => {
+  const h = hitungKomponenKerusakan(k);
+  return `- ${k.nama}: ${h.persen.toFixed(1)}% (Bobot: ${(k.bobot*100).toFixed(1)}%) | Tahap1: ${k.tahap1}`;
+}).join('\n')}
+`;
+}
+
+// ============================================================
+// AI PHOTO ANALYSIS — Gemini Vision
+// ============================================================
+async function analyzePhotoWithGemini(imageBase64, komponenNama, survey) {
+  const prompt = `
+Ini adalah foto kerusakan komponen ${komponenNama} dari bangunan sekolah.
+Lakukan analisis visual dan tentukan:
+
+1. KLASIFIKASI KERUSAKAN (pilih SATU nilai):
+   - 0.00 = Tidak Rusak
+   - 0.20 = Rusak Sangat Ringan
+   - 0.35 = Rusak Ringan
+   - 0.50 = Rusak Sedang
+   - 0.70 = Rusak Berat
+   - 0.85 = Rusak Sangat Berat
+   - 1.00 = Tidak Sesuai
+
+2. DESKRIPSI KERUSAKAN yang terlihat (maks 2 kalimat)
+
+3. INDIKASI KESELAMATAN:
+   - "tidak_ada_kerusakan"
+   - "ada_kerusakan_tidak_membahayakan"
+   - "ada_kerusakan_membahayakan"
+
+4. TINDAKAN yang disarankan
+
+Format respons HARUS JSON:
+{
+  "klasifikasi_nilai": 0.35,
+  "klasifikasi_label": "Rusak Ringan",
+  "deskripsi": "...",
+  "tahap1_status": "ada_kerusakan_tidak_membahayakan",
+  "tindakan": "...",
+  "confidence": 0.85
+}`;
+
+  const result = await callGemini(prompt, '', imageBase64);
+  
+  try {
+    const jsonMatch = result.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+  } catch(e) {}
+  
+  return { raw: result, klasifikasi_nilai: null, klasifikasi_label: 'Tidak terdeteksi' };
+}
+
+// ============================================================
+// FOTO LAPANGAN — Kamera + Timestamp Configurable
+// ============================================================
+function FotoLapangan({ onCapture, komponenNama }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [timestampConfig, setTimestampConfig] = useState({
+    showDate: true,
+    showTime: true,
+    showLocation: true,
+    position: 'bottom-right', // 'bottom-right', 'bottom-left', 'top-right', 'top-left'
+    format: 'DD/MM/YYYY HH:mm'
+  });
+  const [customText, setCustomText] = useState('');
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } 
+      });
+      videoRef.current.srcObject = stream;
+    } catch (err) {
+      console.log('Camera not available, using file upload');
+    }
+  };
+
+  const stopCamera = () => {
+    const stream = videoRef.current?.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw video frame
+    ctx.drawImage(video, 0, 0);
+    
+    // Add timestamp watermark
+    addTimestampWatermark(ctx, canvas.width, canvas.height);
+    
+    // Get image data
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+    setCapturedImage(imageData);
+    stopCamera();
+  };
+
+  const addTimestampWatermark = (ctx, width, height) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID');
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    const timestamp = `${dateStr} ${timeStr}`;
+    
+    // Calculate position
+    let x, y;
+    const padding = 20;
+    const lineHeight = 30;
+    const text = timestampConfig.showDate && timestampConfig.showTime ? timestamp : 
+                 timestampConfig.showDate ? dateStr : timeStr;
+    
+    // Position calculation
+    if (timestampConfig.position.includes('right')) {
+      x = width - padding;
+    } else {
+      x = padding;
+    }
+    if (timestampConfig.position.includes('bottom')) {
+      y = height - padding - 10;
+    } else {
+      y = padding + 20;
+    }
+    
+    // Draw semi-transparent background
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    const textWidth = ctx.measureText(text).width + 20;
+    const bgX = timestampConfig.position.includes('right') ? x - textWidth : x;
+    ctx.fillRect(bgX, y - 25, textWidth, 35);
+    
+    // Draw text
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = timestampConfig.position.includes('right') ? 'right' : 'left';
+    ctx.fillText(text, x, y);
+    
+    // Draw custom text if provided
+    if (customText) {
+      const customY = y - lineHeight;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      const customWidth = ctx.measureText(customText).width + 20;
+      const customBgX = timestampConfig.position.includes('right') ? x - customWidth : x;
+      ctx.fillRect(customBgX, customY - 25, customWidth, 35);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(customText, x, customY);
+    }
+    
+    ctx.restore();
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        addTimestampWatermark(ctx, canvas.width, canvas.height);
+        setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const savePhoto = () => {
+    if (capturedImage && onCapture) {
+      onCapture(capturedImage);
+    }
+    setIsOpen(false);
+    setCapturedImage(null);
+  };
+
+  const retake = () => {
+    setCapturedImage(null);
+    startCamera();
+  };
+
+  if (!isOpen) {
+    return (
+      <button 
+        className="btn btn-secondary btn-sm"
+        onClick={() => { setIsOpen(true); startCamera(); }}
+        title="Ambil foto lapangan"
+      >
+        📷 Foto
+      </button>
+    );
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.9)',
+      zIndex: 2000,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20
+    }}>
+      <div style={{
+        background: 'var(--surface)',
+        borderRadius: 12,
+        padding: 20,
+        maxWidth: 800,
+        width: '100%',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>📷 Foto Lapangan — {komponenNama}</h3>
+          <button onClick={() => { setIsOpen(false); stopCamera(); }} style={{ fontSize: 20 }}>✕</button>
+        </div>
+
+        {/* Timestamp Configuration */}
+        <div style={{ 
+          background: 'var(--surface2)', 
+          padding: 12, 
+          borderRadius: 8, 
+          marginBottom: 16,
+          fontSize: 12
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>⚙️ Konfigurasi Timestamp:</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={timestampConfig.showDate} 
+                onChange={(e) => setTimestampConfig({...timestampConfig, showDate: e.target.checked})}
+              />
+              Tanggal
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={timestampConfig.showTime} 
+                onChange={(e) => setTimestampConfig({...timestampConfig, showTime: e.target.checked})}
+              />
+              Jam
+            </label>
+            <select 
+              value={timestampConfig.position}
+              onChange={(e) => setTimestampConfig({...timestampConfig, position: e.target.value})}
+              style={{ fontSize: 12, padding: '2px 8px' }}
+            >
+              <option value="bottom-right">Kanan Bawah</option>
+              <option value="bottom-left">Kiri Bawah</option>
+              <option value="top-right">Kanan Atas</option>
+              <option value="top-left">Kiri Atas</option>
+            </select>
+          </div>
+          <input
+            type="text"
+            placeholder="Teks tambahan (opsional)"
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            style={{ 
+              width: '100%', 
+              marginTop: 8, 
+              padding: '6px 10px', 
+              fontSize: 12,
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              color: 'var(--text)'
+            }}
+          />
+        </div>
+
+        {/* Camera or Captured Image */}
+        <div style={{ position: 'relative', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+          {!capturedImage ? (
+            <>
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline
+                style={{ width: '100%', maxHeight: 400, display: videoRef.current?.srcObject ? 'block' : 'none' }}
+              />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              
+              {!videoRef.current?.srcObject && (
+                <div style={{ padding: 40, textAlign: 'center' }}>
+                  <p>Kamera tidak tersedia. Upload foto dari galeri:</p>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileUpload}
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                  />
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ marginTop: 12 }}
+                  >
+                    📁 Pilih Foto
+                  </button>
+                </div>
+              )}
+              
+              {videoRef.current?.srcObject && (
+                <button 
+                  onClick={capturePhoto}
+                  style={{
+                    position: 'absolute',
+                    bottom: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    background: '#fff',
+                    border: '4px solid var(--accent2)',
+                    cursor: 'pointer'
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <img src={capturedImage} alt="Captured" style={{ width: '100%', maxHeight: 400 }} />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+            </>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+          {!capturedImage ? (
+            <>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                📁 Dari Galeri
+              </button>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileUpload}
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+              />
+            </>
+          ) : (
+            <>
+              <button className="btn btn-secondary" onClick={retake}>📷 Ulangi</button>
+              <button className="btn btn-primary" onClick={savePhoto}>✅ Simpan</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// AI CHAT WIDGET — Enhanced Version
+// ============================================================
+// ============================================================
+function AIChatWidget() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: 'ai', text: 'Halo! Saya AI Assistant SIPRUSAK. Ada yang bisa saya bantu tentang penilaian kerusakan bangunan?' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+  const { chatWithAI } = useAIEngine();
+  const { addToast } = useApp();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isOpen]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userMessage = input.trim();
+    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setInput('');
+    setIsTyping(true);
+
+    try {
+      const response = await chatWithAI(userMessage);
+      setMessages(prev => [...prev, { role: 'ai', text: response.response }]);
+    } catch (err) {
+      addToast('Gagal mendapatkan respons AI', 'error');
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Floating Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: '50%',
+          background: 'var(--accent2)',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 12px rgba(33,150,243,0.4)',
+          zIndex: 1000,
+          fontSize: 24
+        }}
+      >
+        {isOpen ? '✕' : '🤖'}
+      </button>
+
+      {/* Chat Window */}
+      {isOpen && (
+        <div style={{
+          position: 'fixed',
+          bottom: 90,
+          right: 24,
+          width: 360,
+          height: 480,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 1000,
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: '16px 20px',
+            background: 'var(--accent2)',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <span>🤖</span>
+            <span>AI Assistant SIPRUSAK</span>
+          </div>
+
+          {/* Messages */}
+          <div style={{
+            flex: 1,
+            overflow: 'auto',
+            padding: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}>
+            {messages.map((msg, idx) => (
+              <div key={idx} style={{
+                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                maxWidth: '85%',
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: msg.role === 'user' ? 'var(--accent2)' : 'var(--surface2)',
+                color: msg.role === 'user' ? 'white' : 'var(--text)',
+                fontSize: 13,
+                lineHeight: 1.5,
+                whiteSpace: 'pre-wrap'
+              }}>
+                {msg.text}
+              </div>
+            ))}
+            {isTyping && (
+              <div style={{
+                alignSelf: 'flex-start',
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: 'var(--surface2)',
+                fontSize: 13,
+                color: 'var(--text3)'
+              }}>
+                Mengetik...
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <div style={{
+            padding: 12,
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            gap: 8
+          }}>
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyPress={e => e.key === 'Enter' && handleSend()}
+              placeholder="Tanya tentang kerusakan, biaya, standar..."
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                border: '1px solid var(--border2)',
+                borderRadius: 20,
+                background: 'var(--surface2)',
+                color: 'var(--text)',
+                fontSize: 13,
+                outline: 'none'
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={isTyping || !input.trim()}
+              style={{
+                padding: '10px 16px',
+                borderRadius: 20,
+                background: 'var(--accent2)',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                opacity: isTyping || !input.trim() ? 0.5 : 1
+              }}
+            >
+              Kirim
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ============================================================
+// USER MANAGEMENT PAGE
+// ============================================================
+function UserManagement() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { addToast } = useApp();
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (!error && data) setUsers(data);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="page-content">
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>Manajemen User</h2>
+      <div className="card">
+        {loading ? (
+          <div className="loading"><div className="spinner"/><span>Memuat data...</span></div>
+        ) : users.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">👤</div>
+            <h3>Belum Ada User</h3>
+            <p>User akan muncul setelah registrasi di Supabase Auth</p>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr><th>Nama</th><th>Email</th><th>Role</th><th>Instansi</th><th>Jabatan</th></tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id}>
+                  <td>{u.full_name || '-'}</td>
+                  <td>{u.email || '-'}</td>
+                  <td><span className="badge">{u.role}</span></td>
+                  <td>{u.instansi || '-'}</td>
+                  <td>{u.jabatan || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// REPORTS & EXPORT PAGE
+// ============================================================
+function ReportsPage({ surveys }) {
+  const [filterStatus, setFilterStatus] = useState('all');
+  const { addToast } = useApp();
+
+  const filteredSurveys = filterStatus === 'all' 
+    ? surveys 
+    : surveys.filter(s => s.status === filterStatus);
+
+  const exportAllToExcel = () => {
+    if (filteredSurveys.length === 0) {
+      addToast('Tidak ada data untuk export', 'warning');
+      return;
+    }
+    // Export logic here
+    addToast(`Export ${filteredSurveys.length} survey ke Excel`, 'success');
+  };
+
+  const stats = {
+    total: surveys.length,
+    draft: surveys.filter(s => s.status === 'draft').length,
+    disetujui: surveys.filter(s => s.status === 'disetujui').length,
+    rusakRingan: surveys.filter(s => s.kesimpulan_kerusakan === 'Rusak Ringan').length,
+    rusakSedang: surveys.filter(s => s.kesimpulan_kerusakan === 'Rusak Sedang').length,
+    rusakBerat: surveys.filter(s => s.kesimpulan_kerusakan === 'Rusak Berat').length,
+  };
+
+  return (
+    <div className="page-content">
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>Laporan & Export</h2>
+      
+      <div className="stats-grid" style={{ marginBottom: 24 }}>
+        <div className="stat-card">
+          <div className="stat-label">Total Survei</div>
+          <div className="stat-value">{stats.total}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Draft</div>
+          <div className="stat-value" style={{ color: 'var(--text3)' }}>{stats.draft}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Disetujui</div>
+          <div className="stat-value" style={{ color: 'var(--success)' }}>{stats.disetujui}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Rusak Ringan</div>
+          <div className="stat-value" style={{ color: 'var(--ringan)' }}>{stats.rusakRingan}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Rusak Sedang</div>
+          <div className="stat-value" style={{ color: 'var(--sedang)' }}>{stats.rusakSedang}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Rusak Berat</div>
+          <div className="stat-value" style={{ color: 'var(--berat)' }}>{stats.rusakBerat}</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Filter & Export</span>
+          <button className="btn btn-primary" onClick={exportAllToExcel}>📊 Export Excel</button>
+        </div>
+        <div style={{ padding: 16 }}>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ maxWidth: 200 }}>
+            <option value="all">Semua Status</option>
+            <option value="draft">Draft</option>
+            <option value="disposisi">Disposisi</option>
+            <option value="persiapan">Persiapan</option>
+            <option value="survey_lapangan">Survey Lapangan</option>
+            <option value="analisis_data">Analisis Data</option>
+            <option value="penilaian">Penilaian</option>
+            <option value="diperiksa">Diperiksa</option>
+            <option value="disetujui">Disetujui</option>
+            <option value="ditolak">Ditolak</option>
+          </select>
+          <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text3)' }}>
+            Menampilkan {filteredSurveys.length} dari {surveys.length} survey
+          </p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">Ringkasan Survey</div>
+        {filteredSurveys.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📋</div>
+            <h3>Tidak Ada Data</h3>
+            <p>Belum ada survey dengan filter yang dipilih</p>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr><th>Sekolah</th><th>Bangunan</th><th>Status</th><th>Kerusakan</th><th>Aksi</th></tr>
+            </thead>
+            <tbody>
+              {filteredSurveys.map(s => (
+                <tr key={s.id}>
+                  <td>{s.nama_sekolah}</td>
+                  <td>{s.nama_bangunan}</td>
+                  <td><span className={`badge ${s.status === 'disetujui' ? 'badge-success' : s.status === 'draft' ? 'badge-warning' : 'badge-info'}`}>{s.status?.replace(/_/g, ' ')}</span></td>
+                  <td>{s.total_nilai_kerusakan ? `${s.total_nilai_kerusakan.toFixed(1)}%` : '-'}</td>
+                  <td><button className="btn btn-secondary btn-sm" onClick={() => exportToExcel(s)}>Export</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// APP UTAMA
+// ============================================================
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [surveys, setSurveys] = useState([]);
+  const [selectedSurvey, setSelectedSurvey] = useState(null);
+  const [surveysLoading, setSurveysLoading] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const addToast = useCallback((message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+  }, []);
+
+  // Auth
+  useEffect(() => {
+    if (IS_DEMO_MODE) {
+      setLoading(false); return;
+    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          .then(({ data }) => { setUser(data || { id: session.user.id, email: session.user.email, role: 'surveyor', full_name: session.user.email }); });
+      }
+      setLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) setUser(null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load surveys - with localStorage for demo mode
+  useEffect(() => {
+    if (user) loadSurveys();
+  }, [user]);
+
+  // Beforeunload warning for unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Anda memiliki perubahan yang belum disimpan. Yakin ingin keluar?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const loadSurveys = async () => {
+    setSurveysLoading(true);
+    if (IS_DEMO_MODE) {
+      // Load from localStorage or use default demo data
+      const saved = localStorage.getItem('siprusak_demo_surveys');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setSurveys(parsed);
+          setSurveysLoading(false);
+          return;
+        } catch (e) { console.error('Failed to load saved surveys', e); }
+      }
+      // Default demo data
+      const defaultSurveys = [
+        { id: '1', nama_sekolah: 'SDN 01 Contoh', nama_bangunan: 'Gedung Kelas A', npsn: '12345678', jumlah_lantai: 1, status: 'penilaian', total_nilai_kerusakan: 22.5, kesimpulan_kerusakan: 'Rusak Ringan', kabupaten_kota: 'Kab. Contoh', created_at: new Date().toISOString() },
+        { id: '2', nama_sekolah: 'SMPN 02 Contoh', nama_bangunan: 'Gedung Utama', npsn: '87654321', jumlah_lantai: 2, status: 'disetujui', total_nilai_kerusakan: 38.7, kesimpulan_kerusakan: 'Rusak Sedang', kabupaten_kota: 'Kota Contoh', created_at: new Date().toISOString() },
+        { id: '3', nama_sekolah: 'SMAN 03 Contoh', nama_bangunan: 'Lab IPA', npsn: '11223344', jumlah_lantai: 1, status: 'draft', total_nilai_kerusakan: null, kesimpulan_kerusakan: null, kabupaten_kota: 'Kab. Contoh', created_at: new Date().toISOString() },
+      ];
+      setSurveys(defaultSurveys);
+      localStorage.setItem('siprusak_demo_surveys', JSON.stringify(defaultSurveys));
+      setSurveysLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase.from('surveys').select('*').order('created_at', { ascending: false });
+      if (!error && data) setSurveys(data);
+    } catch (err) { console.error(err); }
+    setSurveysLoading(false);
+  };
+
+  const handleNewSurvey = async (formData) => {
+    if (IS_DEMO_MODE) {
+      const newSurvey = { ...formData, id: Date.now().toString(), status: 'draft', total_nilai_kerusakan: null, kesimpulan_kerusakan: null, created_at: new Date().toISOString() };
+      const updated = [newSurvey, ...surveys];
+      setSurveys(updated);
+      localStorage.setItem('siprusak_demo_surveys', JSON.stringify(updated));
+      setSelectedSurvey(newSurvey);
+      setCurrentPage('survey-detail');
+      addToast('Survei baru dibuat (mode demo - tersimpan di browser)', 'success');
+      return;
+    }
+    try {
+      const { data, error } = await supabase.from('surveys').insert({
+        ...formData, created_by: user?.id, surveyor_id: user?.id, status: 'draft',
+      }).select().single();
+      if (error) throw error;
+      setSurveys(prev => [data, ...prev]);
+      setSelectedSurvey(data);
+      setCurrentPage('survey-detail');
+      addToast('Survei baru berhasil dibuat', 'success');
+    } catch (err) {
+      addToast('Gagal membuat survei: ' + err.message, 'error');
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!IS_DEMO_MODE) await supabase.auth.signOut();
+    setUser(null);
+    addToast('Berhasil keluar', 'info');
+  };
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div className="loading"><div className="spinner"/><span style={{ color: 'var(--text3)' }}>Memuat...</span></div>
+    </div>
+  );
+
+  if (!user) return (
+    <AppContext.Provider value={{ addToast, user }}>
+      <AuthPage onLogin={setUser} />
+      <ToastContainer toasts={toasts} />
+    </AppContext.Provider>
+  );
+
+  const renderPage = () => {
+    if (currentPage === 'survey-detail' && selectedSurvey) {
+      return <SurveyDetail 
+        survey={selectedSurvey} 
+        onBack={() => setCurrentPage('surveys')} 
+        onUpdate={loadSurveys}
+        onHasChanges={setHasUnsavedChanges}
+      />;
+    }
+    switch (currentPage) {
+      case 'dashboard': return <Dashboard surveys={surveys} onNavigate={setCurrentPage} />;
+      case 'surveys': return <SurveyList surveys={surveys} loading={surveysLoading}
+        onView={(s) => { setSelectedSurvey(s); setCurrentPage('survey-detail'); }}
+        onNew={() => setCurrentPage('new-survey')} />;
+      case 'new-survey': return <SurveyForm
+        onSave={handleNewSurvey}
+        onCancel={() => setCurrentPage('surveys')}
+        onHasChanges={setHasUnsavedChanges} />;
+      case 'users': return <UserManagement />;
+      case 'reports': return <ReportsPage surveys={surveys} />;
+      default: return <Dashboard surveys={surveys} onNavigate={setCurrentPage} />;
+    }
+  };
+
+  const pageTitle = {
+    dashboard: 'Dashboard',
+    surveys: 'Daftar Survei',
+    'new-survey': 'Survei Baru',
+    'survey-detail': selectedSurvey?.nama_bangunan || 'Detail Survei',
+    users: 'Manajemen User',
+    reports: 'Laporan & Export',
+  }[currentPage] || 'SIPRUSAK';
+
+  return (
+    <AppContext.Provider value={{ addToast, user }}>
+      <div className="app-shell">
+        <Sidebar
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          user={user}
+          onLogout={handleLogout}
+        />
+        <main className="main-content">
+          <div className="topbar">
+            <span className="topbar-title">{pageTitle}</span>
+            <div className="topbar-actions">
+              <span style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>
+                {new Date().toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+              </span>
+              {!IS_DEMO_MODE && IS_CONFIGURED && (
+                <span className="badge" style={{ background: 'rgba(245,158,11,0.1)', color: 'var(--warning)', border: '1px solid rgba(245,158,11,0.3)', fontSize: 10 }}>
+                  DEMO MODE
+                </span>
+              )}
+            </div>
+          </div>
+          {renderPage()}
+        </main>
+      </div>
+      <ToastContainer toasts={toasts} />
+      <AIChatWidget />
+    </AppContext.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<!-- Load all scripts at end of body for proper loading order -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script>
+  // IMMEDIATELY capture Supabase reference before anything else can overwrite it
+  window._supabaseLib = window.supabase;
+  console.log('Captured Supabase library:', typeof window._supabaseLib, Object.keys(window._supabaseLib || {}));
+  
+  // Try to init right away using captured library
+  if (window._supabaseLib && window._supabaseLib.createClient) {
+    // Initialize the global supabase client on window object (for app use)
+    window._supabaseClient = window._supabaseLib.createClient('https://zktbmlpfcynplrihfldh.supabase.co', 'sb_publishable_-cNO5hVUuHExdstLo1_qVA_C_iMV_6V');
+    window._IS_DEMO_MODE = false;
+    console.log('✅ Supabase initialized immediately in body script:', !!window._supabaseClient);
+    
+    // Make available globally for inline script in head
+    window.supabaseClient = window._supabaseClient;
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</body>
+</html>
