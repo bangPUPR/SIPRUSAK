@@ -943,13 +943,16 @@ function useAIEngine() {
   const analyzeDamagePattern = useCallback(async (komponenList, surveyData) => {
     setIsAnalyzing(true);
     try {
+      // Defensive: ensure komponenList is array
+      const safeKomponenList = Array.isArray(komponenList) ? komponenList : [];
+      
       // Simulasi analisis AI (dalam produksi, ini akan memanggil API)
-      const criticalComponents = komponenList.filter(k => {
+      const criticalComponents = safeKomponenList.filter(k => {
         const hasil = hitungKomponenKerusakan(k);
         return hasil.persen > 30 || k.tahap1 === 'ada_kerusakan_membahayakan';
       });
       
-      const damagePattern = detectDamagePattern(komponenList);
+      const damagePattern = detectDamagePattern(safeKomponenList);
       const recommendation = generateAIRecommendation(damagePattern, criticalComponents);
       
       const insights = {
@@ -961,7 +964,7 @@ function useAIEngine() {
         })),
         overallAssessment: recommendation,
         priority: criticalComponents.length > 0 ? 'HIGH' : 'MEDIUM',
-        estimatedRepairCost: estimateRepairCost(komponenList, surveyData.luas_bangunan),
+        estimatedRepairCost: estimateRepairCost(safeKomponenList, surveyData.luas_bangunan),
         safetyRisk: criticalComponents.some(c => c.tahap1 === 'ada_kerusakan_membahayakan') ? 'CRITICAL' : 'MODERATE'
       };
       
@@ -977,8 +980,9 @@ function useAIEngine() {
 
   // AI Prediction: Predict future damage progression
   const predictDamageProgression = useCallback(async (komponenList, historicalData = []) => {
-    const currentTotal = hitungTotalKerusakan(komponenList);
-    const degradationRate = calculateDegradationRate(komponenList, historicalData);
+    const safeKomponenList = Array.isArray(komponenList) ? komponenList : [];
+    const currentTotal = hitungTotalKerusakan(safeKomponenList);
+    const degradationRate = calculateDegradationRate(safeKomponenList, historicalData);
     
     const predictions = {
       '6_months': Math.min(currentTotal.totalPersen + (degradationRate * 0.5), 100),
@@ -1053,15 +1057,16 @@ Gunakan fitur AI Cost Estimator untuk perhitungan detail.`,
 
   // Generate AI Report
   const generateAIReport = useCallback(async (survey, komponenList) => {
-    const totalDamage = hitungTotalKerusakan(komponenList);
-    const pattern = detectDamagePattern(komponenList);
-    const predictions = await predictDamageProgression(komponenList);
+    const safeKomponenList = Array.isArray(komponenList) ? komponenList : [];
+    const totalDamage = hitungTotalKerusakan(safeKomponenList);
+    const pattern = detectDamagePattern(safeKomponenList);
+    const predictions = await predictDamageProgression(safeKomponenList);
     
     return {
       executiveSummary: generateExecutiveSummary(survey, totalDamage),
       technicalAnalysis: generateTechnicalAnalysis(komponenList, totalDamage),
       recommendations: generateRecommendations(totalDamage, pattern),
-      costEstimate: estimateRepairCost(komponenList, survey.luas_bangunan),
+      costEstimate: estimateRepairCost(safeKomponenList, survey.luas_bangunan),
       timeline: generateRepairTimeline(totalDamage),
       appendices: {
         methodology: 'AI-Enhanced Assessment v1.0',
@@ -1084,6 +1089,7 @@ Gunakan fitur AI Cost Estimator untuk perhitungan detail.`,
 
 // Helper Functions for AI Engine
 function detectDamagePattern(komponenList) {
+  if (!Array.isArray(komponenList)) return 'NO_DATA';
   const strukturDamage = komponenList.filter(k => k.sistem === 'STRUKTUR' && hitungKomponenKerusakan(k).persen > 20);
   const arsitekturDamage = komponenList.filter(k => k.sistem === 'ARSITEKTUR' && hitungKomponenKerusakan(k).persen > 20);
   const utilitasDamage = komponenList.filter(k => k.sistem === 'UTILITAS' && hitungKomponenKerusakan(k).persen > 20);
@@ -1128,6 +1134,9 @@ function calculateDegradationRate(komponenList, historicalData) {
 }
 
 function estimateRepairCost(komponenList, luasBangunan) {
+  if (!Array.isArray(komponenList)) {
+    return { min: 0, max: 0, estimate: 0, breakdown: { material: 0, labor: 0, equipment: 0 } };
+  }
   const baseCostPerM2 = 1500000; // Rp 1.5 juta per m2 untuk perbaikan ringan
   const totalDamage = hitungTotalKerusakan(komponenList);
   
@@ -1155,6 +1164,7 @@ function generateExecutiveSummary(survey, totalDamage) {
 }
 
 function generateTechnicalAnalysis(komponenList, totalDamage) {
+  if (!Array.isArray(komponenList)) return [];
   return komponenList
     .filter(k => hitungKomponenKerusakan(k).persen > 10)
     .map(k => ({
@@ -1220,6 +1230,9 @@ function hitungKomponenKerusakan(komponen, tipeInput) {
 }
 
 function hitungTotalKerusakan(komponenList) {
+  if (!Array.isArray(komponenList)) {
+    return { totalPersen: 0, kesimpulan: 'Tidak Ada Kerusakan', isCritical: false };
+  }
   let total = 0;
   let isCritical = false;
   
@@ -2340,6 +2353,7 @@ function SurveyDetail({ survey: initialSurvey, onBack, onUpdate, onHasChanges })
     { key: 'info', label: 'ℹ Info Bangunan' },
     { key: 'workflow', label: '🔄 Workflow' },
     { key: 'ttd', label: '✍ Tanda Tangan' },
+    { key: 'ai', label: '🤖 Analisis AI' },
     { key: 'laporan', label: '📄 Laporan' },
   ];
 
@@ -2504,7 +2518,11 @@ function SurveyDetail({ survey: initialSurvey, onBack, onUpdate, onHasChanges })
         />
       )}
 
-      {/* AI Insights Panel */}
+      {activeTab === 'ai' && (
+        <AIInsightsPanel survey={survey} komponenList={komponen} />
+      )}
+
+      {/* AI Insights Panel - legacy placement, also shown in penilaian tab */}
       {activeTab === 'penilaian' && !loading && (
         <AIInsightsPanel survey={survey} komponenList={komponen} />
       )}
