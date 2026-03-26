@@ -1165,26 +1165,6 @@ function generateTechnicalAnalysis(komponenList, totalDamage) {
     }));
 }
 
-function generateRecommendations(totalDamage, pattern) {
-  const recs = [];
-  
-  if (totalDamage.totalPersen > 45) {
-    recs.push('Prioritas 1: Lakukan penanganan darurat pada komponen kritis');
-    recs.push('Prioritas 2: Rencanakan rehabilitasi komprehensif');
-    recs.push('Prioritas 3: Evakuasi sementara jika diperlukan');
-  } else if (totalDamage.totalPersen > 30) {
-    recs.push('Prioritas 1: Rencanakan perbaikan terjadwal dalam 6 bulan');
-    recs.push('Prioritas 2: Lakukan pemantauan bulanan');
-    recs.push('Prioritas 3: Siapkan anggaran perbaikan');
-  } else {
-    recs.push('Prioritas 1: Lanjutkan pemeliharaan rutin');
-    recs.push('Prioritas 2: Dokumentasikan kondisi saat ini');
-    recs.push('Prioritas 3: Inspeksi ulang dalam 12 bulan');
-  }
-  
-  return recs;
-}
-
 function generateRepairTimeline(totalDamage) {
   if (totalDamage.totalPersen > 45) {
     return {
@@ -2360,6 +2340,7 @@ function SurveyDetail({ survey: initialSurvey, onBack, onUpdate, onHasChanges })
     { key: 'info', label: 'ℹ Info Bangunan' },
     { key: 'workflow', label: '🔄 Workflow' },
     { key: 'ttd', label: '✍ Tanda Tangan' },
+    { key: 'laporan', label: '📄 Laporan' },
   ];
 
   return (
@@ -2513,6 +2494,14 @@ function SurveyDetail({ survey: initialSurvey, onBack, onUpdate, onHasChanges })
 
       {activeTab === 'foto' && (
         <FotoGalleryPanel survey={survey} />
+      )}
+
+      {activeTab === 'laporan' && (
+        <LaporanPage 
+          survey={survey} 
+          komponenList={komponen} 
+          photos={JSON.parse(localStorage.getItem(`siprusak_photos_${survey.id}`) || '[]')}
+        />
       )}
 
       {/* AI Insights Panel */}
@@ -3998,6 +3987,1374 @@ function FotoLapangan({ onCapture, komponenNama }) {
       </div>
     </div>
   );
+}
+
+// ============================================================
+// REPORT GENERATION ENGINE — 17 Section Laporan KemenPU
+// ============================================================
+
+const REPORT_SECTIONS = [
+  { id: 'cover', title: 'Halaman Judul', icon: '📄' },
+  { id: 'approval', title: 'Lembar Pengesahan', icon: '✍️' },
+  { id: 'executive', title: 'Ringkasan Eksekutif', icon: '📊' },
+  { id: 'introduction', title: 'Pendahuluan', icon: '📖' },
+  { id: 'building_data', title: 'Data Umum Bangunan', icon: '🏢' },
+  { id: 'methodology', title: 'Metodologi', icon: '🔬' },
+  { id: 'survey_results', title: 'Hasil Survey Lapangan', icon: '📋' },
+  { id: 'damage_analysis', title: 'Analisis Kerusakan', icon: '🔍' },
+  { id: 'classification', title: 'Validasi Klasifikasi', icon: '✅' },
+  { id: 'prediction', title: 'Analisis Prediksi', icon: '🔮' },
+  { id: 'recommendations', title: 'Rekomendasi Teknis', icon: '💡' },
+  { id: 'cost_estimate', title: 'Estimasi Biaya', icon: '💰' },
+  { id: 'rab', title: 'RAB', icon: '📑' },
+  { id: 'ai_comparison', title: 'AI vs Manual', icon: '🤖' },
+  { id: 'conclusion', title: 'Kesimpulan', icon: '📝' },
+  { id: 'follow_up', title: 'Rekomendasi Tindak Lanjut', icon: '🚀' },
+  { id: 'appendix', title: 'Lampiran', icon: '📎' }
+];
+
+// Perbup SHS Kabupaten Garut — contoh data (sesuaikan dengan perbup aktual)
+const PERBUP_SHS_GARUT = {
+  tahun: 2024,
+  satuan: {
+    // Struktur
+    'pekerjaan_beton': 1250000, // per m³
+    'pekerjaan_pasangan_batu': 850000, // per m³
+    'pekerjaan_aci': 65000, // per m²
+    'pekerjaan_plaster': 75000, // per m²
+    'pekerjaan_pasang_keramik': 185000, // per m²
+    'pekerjaan_pengecatan': 45000, // per m²
+    'pekerjaan_atap': 325000, // per m²
+    'pekerjaan_plafond': 165000, // per m²
+    'pekerjaan_kusen': 450000, // per unit
+    'pekerjaan_pintu': 1250000, // per unit
+    'pekerjaan_jendela': 850000, // per unit
+    // Utilitas
+    'pekerjaan_listrik': 185000, // per titik
+    'pekerjaan_air': 225000, // per titik
+    'pekerjaan_drainase': 185000, // per m
+    // Tenaga kerja
+    'tk_setara': 185000, // per hari
+    'tk_ahli': 285000, // per hari
+    // Material
+    'semen': 110000, // per sak (50kg)
+    'pasir': 285000, // per m³
+    'batu_split': 385000, // per m³
+    'besi': 18500, // per kg
+    'kayu': 8500000, // per m³
+    'cat': 125000, // per kg
+    'keramik': 85000, // per m²
+    'atap': 185000, // per m²
+  }
+};
+
+function generateReportData(survey, komponenList, aiInsights, predictions, photos = []) {
+  // Calculate totals
+  const { totalPersen, kesimpulan, isCritical } = hitungTotalKerusakan(komponenList);
+  
+  // Group by sistem
+  const sistemStats = {};
+  komponenList.forEach(k => {
+    if (!sistemStats[k.sistem]) {
+      sistemStats[k.sistem] = { komponen: [], totalKerusakan: 0, count: 0 };
+    }
+    const h = hitungKomponenKerusakan(k);
+    sistemStats[k.sistem].komponen.push({
+      ...k,
+      persenKerusakan: h.persen,
+      nilaiTerbobot: h.nilaiTerbobot
+    });
+    sistemStats[k.sistem].totalKerusakan += h.persen;
+    sistemStats[k.sistem].count++;
+  });
+  
+  // Calculate average per sistem
+  Object.keys(sistemStats).forEach(key => {
+    sistemStats[key].rataRata = sistemStats[key].totalKerusakan / sistemStats[key].count;
+  });
+  
+  // Estimate costs based on Perbup SHS
+  const costEstimate = calculateCostEstimate(komponenList, PERBUP_SHS_GARUT);
+  
+  // Generate RAB
+  const rab = generateRAB(komponenList, PERBUP_SHS_GARUT);
+  
+  return {
+    // 1. Cover
+    cover: {
+      namaBangunan: survey.nama_bangunan,
+      namaSekolah: survey.nama_sekolah,
+      lokasi: `${survey.alamat}, ${survey.kabupaten_kota}, ${survey.provinsi}`,
+      pemilik: survey.nama_sekolah,
+      tahunPenilaian: new Date().getFullYear(),
+      timTeknis: survey.surveyor_name || 'Tim Survey SIPRUSAK',
+      tanggalSurvey: survey.tanggal_survey ? new Date(survey.tanggal_survey).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')
+    },
+    
+    // 2. Approval (from TTD)
+    approval: {
+      ketuaTim: survey.nama_ttd_surveyor || '-',
+      verifikator: survey.nama_ttd_mengetahui || '-',
+      approver: survey.nama_ttd_menyetujui || '-',
+      hasTTD: !!(survey.ttd_surveyor || survey.ttd_mengetahui || survey.ttd_menyetujui),
+      tanggal: new Date().toLocaleDateString('id-ID')
+    },
+    
+    // 3. Executive Summary
+    executive: {
+      kondisiUmum: kesimpulan,
+      persentaseKerusakan: totalPersen.toFixed(2),
+      kategori: kesimpulan,
+      estimasiBiaya: costEstimate.total,
+      estimasiBiayaFormatted: formatRupiah(costEstimate.total),
+      rekomendasiUtama: generateRecommendations(komponenList, totalPersen),
+      isCritical
+    },
+    
+    // 4. Introduction
+    introduction: {
+      latarBelakang: `Penilaian kerusakan bangunan ${survey.nama_bangunan} dilakukan untuk menentukan tingkat kerusakan dan rekomendasi perbaikan sesuai standar Kementerian PUPR.`,
+      maksudTujuan: [
+        'Menentukan tingkat kerusakan bangunan secara obyektif',
+        'Mengidentifikasi komponen kritis yang perlu perbaikan segera',
+        'Menyusun rencana anggaran biaya perbaikan',
+        'Memberikan rekomendasi teknis perbaikan'
+      ],
+      ruangLingkup: 'Seluruh komponen bangunan gedung termasuk struktur, arsitektur, dan utilitas.',
+      dasarHukum: [
+        'Permen PU No.24 Tahun 2008 tentang Pedoman Penilaian Kerusakan Bangunan',
+        'Panduan Penilaian Kerusakan Sekolah/Madrasah KemenPU',
+        `Perbup SHS Kabupaten ${survey.kabupaten_kota || 'Garut'} Tahun ${PERBUP_SHS_GARUT.tahun}`
+      ]
+    },
+    
+    // 5. Building Data
+    buildingData: {
+      namaBangunan: survey.nama_bangunan,
+      fungsiBangunan: survey.jumlah_lantai <= 1 ? 'Bangunan Kelas/Lab 1 Lantai' : survey.jumlah_lantai === 2 ? 'Bangunan Kelas/Lab 2 Lantai' : 'Bangunan Kelas/Lab 3+ Lantai',
+      jumlahLantai: survey.jumlah_lantai,
+      luasBangunan: survey.luas_bangunan ? `${survey.luas_bangunan} m²` : '-',
+      tahunDibangun: survey.tahun_dibangun || '-',
+      strukturUtama: 'Beton Bertulang (asumsi)',
+      sistemUtilitas: 'Listrik, Air Bersih, Drainase',
+      npsn: survey.npsn,
+      alamat: survey.alamat,
+      koordinat: survey.koordinat_lat ? `${survey.koordinat_lat}, ${survey.koordinat_lng}` : '-'
+    },
+    
+    // 6. Methodology
+    methodology: {
+      metodeSurvey: [
+        'Visual Inspection: Pemeriksaan visual kondisi fisik bangunan',
+        'Pengukuran Lapangan: Pengukuran dimensi dan volume kerusakan',
+        'Dokumentasi Foto: Foto kondisi kerusakan dengan timestamp'
+      ],
+      metodeAnalisis: [
+        'Tahap 1 — Safety Check: Deteksi indikasi bahaya keselamatan',
+        'Tahap 2 — Perhitungan Bobot: Perhitungan volume kerusakan per komponen'
+      ],
+      penggunaanAI: aiInsights ? [
+        'Analisis pola kerusakan menggunakan AI',
+        'Prediksi perkembangan kerusakan',
+        'Validasi manual oleh engineer'
+      ] : ['Tidak menggunakan AI']
+    },
+    
+    // 7. Survey Results
+    surveyResults: {
+      rekapitulasiKomponen: komponenList.map(k => {
+        const h = hitungKomponenKerusakan(k);
+        return {
+          kode: k.kode,
+          nama: k.nama,
+          sistem: k.sistem,
+          volumeTotal: k.volTotal,
+          volumeRusak: h.volRusak,
+          satuan: k.satuan,
+          klasifikasi: getKlasifikasiLabel(h.persen),
+          persenKerusakan: h.persen.toFixed(2),
+          keterangan: k.keterangan || '-'
+        };
+      }),
+      dokumentasiFoto: photos.map(p => ({
+        url: p.dataUrl || p.public_url,
+        komponen: p.komponen_nama,
+        timestamp: p.timestamp,
+        deskripsi: `Foto ${p.komponen_nama} — ${new Date(p.timestamp).toLocaleString('id-ID')}`
+      }))
+    },
+    
+    // 8. Damage Analysis
+    damageAnalysis: {
+      identifikasiKerusakan: komponenList.filter(k => {
+        const h = hitungKomponenKerusakan(k);
+        return h.persen > 0;
+      }).map(k => {
+        const h = hitungKomponenKerusakan(k);
+        return {
+          komponen: k.nama,
+          jenisKerusakan: getKlasifikasiLabel(h.persen),
+          lokasi: 'Seluruh bagian',
+          pola: k.tahap1 === 'ada_kerusakan_membahayakan' ? 'Kritis' : 'Lokal'
+        };
+      }),
+      analisisPenyebab: [
+        'Usia bangunan dan pemakaian',
+        'Kondisi lingkungan (cuaca, kelembaban)',
+        'Pemeliharaan yang tidak teratur',
+        'Beban penggunaan melebihi kapasitas'
+      ],
+      analisisTeknis: sistemStats,
+      penilaianRisiko: komponenList.filter(k => {
+        const h = hitungKomponenKerusakan(k);
+        return h.persen > 30 || k.tahap1 === 'ada_kerusakan_membahayakan';
+      }).map(k => {
+        const h = hitungKomponenKerusakan(k);
+        return {
+          komponen: k.nama,
+          risiko: k.tahap1 === 'ada_kerusakan_membahayakan' ? 'Kritis' : h.persen > 45 ? 'Tinggi' : h.persen > 30 ? 'Sedang' : 'Rendah',
+          dampak: k.sistem === 'STRUKTUR' ? 'Mempengaruhi keselamatan struktural' : 'Mempengaruhi fungsi dan kenyamanan',
+          prioritas: k.tahap1 === 'ada_kerusakan_membahayakan' ? 'Segera' : h.persen > 45 ? 'Penting' : h.persen > 30 ? 'Sedang' : 'Rendah'
+        };
+      })
+    },
+    
+    // 9. Classification Validation
+    classification: {
+      skala: [
+        { nilai: '0.00', label: 'Tidak Rusak', range: '0%' },
+        { nilai: '0.20', label: 'Rusak Sangat Ringan', range: '≤ 10%' },
+        { nilai: '0.35', label: 'Rusak Ringan', range: '≤ 30%' },
+        { nilai: '0.50', label: 'Rusak Sedang', range: '30-45%' },
+        { nilai: '0.70', label: 'Rusak Berat', range: '45-60%' },
+        { nilai: '0.85', label: 'Rusak Sangat Berat', range: '> 60%' },
+        { nilai: '1.00', label: 'Tidak Sesuai', range: '100%' }
+      ],
+      justifikasiTeknis: `Berdasarkan hasil perhitungan, bangunan mengalami kerusakan ${kesimpulan} dengan nilai ${totalPersen.toFixed(2)}%.`,
+      koreksiAI: aiInsights ? `Validasi AI: ${aiInsights.overallAssessment}` : 'Tidak ada analisis AI'
+    },
+    
+    // 10. Forward Analysis
+    prediction: predictions || {
+      '6_months': Math.min(totalPersen * 1.1, 100),
+      '1_year': Math.min(totalPersen * 1.2, 100),
+      '3_years': Math.min(totalPersen * 1.4, 100),
+      '5_years': Math.min(totalPersen * 1.7, 100),
+      criticalThreshold: totalPersen > 40 ? 'APPROACHING' : 'SAFE',
+      recommendedAction: totalPersen > 45 ? 'IMMEDIATE_REPAIR_REQUIRED' : totalPersen > 30 ? 'PLANNED_MAINTENANCE' : 'MONITORING'
+    },
+    
+    // 11. Recommendations
+    recommendations: generateRecommendations(komponenList, totalPersen),
+    
+    // 12. Cost Estimate
+    costEstimate,
+    
+    // 13. RAB
+    rab,
+    
+    // 14. AI Comparison
+    aiComparison: aiInsights ? {
+      hasilAI: aiInsights,
+      validasiEngineer: `Manual: ${kesimpulan} (${totalPersen.toFixed(2)}%)`,
+      tingkatKepercayaan: aiInsights.priority === 'HIGH' ? 'Tinggi (komponen kritis terdeteksi)' : 'Sedang'
+    } : null,
+    
+    // 15. Conclusion
+    conclusion: {
+      kondisiBangunan: kesimpulan,
+      kategoriAkhir: kesimpulan,
+      tingkatRisiko: isCritical ? 'Kritis' : totalPersen > 45 ? 'Tinggi' : totalPersen > 30 ? 'Sedang' : 'Rendah'
+    },
+    
+    // 16. Follow Up
+    followUp: [
+      ...(isCritical ? ['Perbaikan segera pada komponen kritis'] : []),
+      ...(totalPersen > 30 ? ['Monitoring berkala 6 bulan'] : ['Monitoring tahunan']),
+      'Investigasi lanjutan jika kerusakan bertambah',
+      'Dokumentasi perubahan kondisi'
+    ],
+    
+    // 17. Appendix
+    appendix: {
+      fotoLapangan: photos,
+      dataSurvey: { survey, komponenList },
+      outputAI: aiInsights,
+      fileExcel: null // Generated on export
+    }
+  };
+}
+
+// Helper functions for report generation
+function getKlasifikasiLabel(persen) {
+  if (persen === 0) return 'Tidak Rusak';
+  if (persen <= 10) return 'Rusak Sangat Ringan';
+  if (persen <= 30) return 'Rusak Ringan';
+  if (persen <= 45) return 'Rusak Sedang';
+  if (persen <= 60) return 'Rusak Berat';
+  if (persen < 100) return 'Rusak Sangat Berat';
+  return 'Tidak Sesuai';
+}
+
+function formatRupiah(amount) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
+}
+
+function generateRecommendations(komponenList, totalPersen) {
+  const recommendations = [];
+  
+  // Add general recommendations based on total damage
+  if (totalPersen <= 30) {
+    recommendations.push('Pemeliharaan rutin dan perbaikan ringan');
+  } else if (totalPersen <= 45) {
+    recommendations.push('Rehabilitasi sebagian komponen rusak');
+    recommendations.push('Prioritas perbaikan pada struktur');
+  } else {
+    recommendations.push('Rekonstruksi/evakuasi dipertimbangkan');
+    recommendations.push('Evaluasi kelayakan struktur oleh ahli');
+  }
+  
+  // Add specific recommendations for critical components
+  komponenList.forEach(k => {
+    const h = hitungKomponenKerusakan(k);
+    if (k.tahap1 === 'ada_kerusakan_membahayakan') {
+      recommendations.push(`SEGERA: Perbaikan ${k.nama} (membahayakan keselamatan)`);
+    } else if (h.persen > 45) {
+      recommendations.push(`PENTING: Rehabilitasi ${k.nama} (${h.persen.toFixed(1)}% rusak)`);
+    } else if (h.persen > 30) {
+      recommendations.push(`Sedang: Perbaikan ${k.nama} (${h.persen.toFixed(1)}% rusak)`);
+    }
+  });
+  
+  return recommendations;
+}
+
+function calculateCostEstimate(komponenList, perbup) {
+  let total = 0;
+  const items = [];
+  
+  komponenList.forEach(k => {
+    const h = hitungKomponenKerusakan(k);
+    if (h.persen > 0) {
+      // Estimate repair volume (assume 60% of damaged volume needs repair)
+      const volRusak = h.volRusak;
+      const volRepair = volRusak * 0.6;
+      
+      // Determine unit price based on component type
+      let unitPrice = perbup.satuan.pekerjaan_beton; // default
+      
+      if (k.nama.toLowerCase().includes('atap')) unitPrice = perbup.satuan.pekerjaan_atap;
+      else if (k.nama.toLowerCase().includes('dinding')) unitPrice = perbup.satuan.pekerjaan_aci;
+      else if (k.nama.toLowerCase().includes('lantai')) unitPrice = perbup.satuan.pekerjaan_pasang_keramik;
+      else if (k.nama.toLowerCase().includes('plafond')) unitPrice = perbup.satuan.pekerjaan_plafond;
+      else if (k.nama.toLowerCase().includes('pintu')) unitPrice = perbup.satuan.pekerjaan_pintu;
+      else if (k.nama.toLowerCase().includes('jendela')) unitPrice = perbup.satuan.pekerjaan_jendela;
+      else if (k.nama.toLowerCase().includes('kusen')) unitPrice = perbup.satuan.pekerjaan_kusen;
+      
+      const cost = volRepair * unitPrice;
+      total += cost;
+      
+      items.push({
+        komponen: k.nama,
+        volumeRusak: volRusak.toFixed(2),
+        volumeRepair: volRepair.toFixed(2),
+        satuan: k.satuan,
+        hargaSatuan: unitPrice,
+        jumlah: cost
+      });
+    }
+  });
+  
+  // Add overhead (10%)
+  const overhead = total * 0.1;
+  
+  return {
+    items,
+    subtotal: total,
+    overhead,
+    total: total + overhead,
+    totalFormatted: formatRupiah(total + overhead)
+  };
+}
+
+function generateRAB(komponenList, perbup) {
+  const struktur = [];
+  const arsitektur = [];
+  const utilitas = [];
+  
+  komponenList.forEach(k => {
+    const h = hitungKomponenKerusakan(k);
+    if (h.persen > 0) {
+      const item = {
+        nama: k.nama,
+        volume: h.volRusak.toFixed(2),
+        satuan: k.satuan
+      };
+      
+      if (k.sistem === 'STRUKTUR') struktur.push(item);
+      else if (k.sistem === 'ARSITEKTUR') arsitektur.push(item);
+      else utilitas.push(item);
+    }
+  });
+  
+  return {
+    pekerjaanStruktur: struktur,
+    pekerjaanArsitektur: arsitektur,
+    pekerjaanUtilitas: utilitas,
+    grandTotal: calculateCostEstimate(komponenList, perbup).total
+  };
+}
+
+// ============================================================
+// LAPORAN PAGE COMPONENT
+// ============================================================
+function LaporanPage({ survey, komponenList, photos = [], aiInsights = null, predictions = null }) {
+  const [reportData, setReportData] = useState(null);
+  const [activeSection, setActiveSection] = useState('executive');
+  const [generating, setGenerating] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const { addToast } = useApp();
+
+  useEffect(() => {
+    if (survey && komponenList) {
+      generateReport();
+    }
+  }, [survey, komponenList, photos, aiInsights]);
+
+  const generateReport = async () => {
+    setGenerating(true);
+    try {
+      const data = generateReportData(survey, komponenList, aiInsights, predictions, photos);
+      setReportData(data);
+      addToast('Laporan berhasil dibuat', 'success');
+    } catch (err) {
+      addToast('Gagal membuat laporan: ' + err.message, 'error');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    setExporting(true);
+    try {
+      // Create a printable HTML version
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(generatePrintableHTML(reportData));
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        addToast('Laporan siap dicetak/simpan sebagai PDF', 'success');
+        setExporting(false);
+      }, 1000);
+    } catch (err) {
+      addToast('Gagal export: ' + err.message, 'error');
+      setExporting(false);
+    }
+  };
+
+  const exportToWord = () => {
+    const html = generateWordHTML(reportData);
+    const blob = new Blob(['\ufeff', html], {
+      type: 'application/msword'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Laporan_Kerusakan_${survey?.nama_bangunan || 'Bangunan'}_${new Date().toISOString().split('T')[0]}.doc`;
+    link.click();
+    addToast('Laporan Word berhasil diunduh', 'success');
+  };
+
+  if (generating) {
+    return (
+      <div className="card" style={{ padding: 40 }}>
+        <div className="loading">
+          <div className="spinner" />
+          <p>Membuat laporan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!reportData) {
+    return (
+      <div className="card" style={{ padding: 40 }}>
+        <div className="empty-state">
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
+          <p>Tidak ada data untuk dibuat laporan</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header Actions */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>📄 Laporan Penilaian Kerusakan</span>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-secondary btn-sm" onClick={exportToWord} disabled={exporting}>
+              📝 Export Word
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={exportToPDF} disabled={exporting}>
+              📄 Export PDF
+            </button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>STATUS</div>
+            <span className={`badge badge-${reportData.executive.kategori.toLowerCase().replace(/\s/g, '-')}`}>
+              {reportData.executive.kategori}
+            </span>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>KERUSAKAN TOTAL</div>
+            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--accent-secondary)' }}>
+              {reportData.executive.persentaseKerusakan}%
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>ESTIMASI BIAYA</div>
+            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--status-ringan)' }}>
+              {reportData.executive.estimasiBiayaFormatted}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 20 }}>
+        {/* Sidebar Navigation */}
+        <div style={{ width: 280, flexShrink: 0 }}>
+          <div className="card" style={{ position: 'sticky', top: 80 }}>
+            <div className="card-header">📑 Bagian Laporan</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {REPORT_SECTIONS.map(section => (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className="nav-item"
+                  style={{
+                    justifyContent: 'flex-start',
+                    background: activeSection === section.id ? 'var(--accent-glow)' : 'transparent',
+                    color: activeSection === section.id ? 'var(--accent-secondary)' : 'var(--text-secondary)',
+                    borderLeftColor: activeSection === section.id ? 'var(--accent-primary)' : 'transparent'
+                  }}
+                >
+                  <span style={{ width: 24 }}>{section.icon}</span>
+                  <span style={{ fontSize: 12 }}>{section.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1 }}>
+          <div className="card">
+            {activeSection === 'cover' && <CoverSection data={reportData.cover} />}
+            {activeSection === 'approval' && <ApprovalSection data={reportData.approval} survey={survey} />}
+            {activeSection === 'executive' && <ExecutiveSection data={reportData.executive} />}
+            {activeSection === 'introduction' && <IntroductionSection data={reportData.introduction} />}
+            {activeSection === 'building_data' && <BuildingDataSection data={reportData.buildingData} />}
+            {activeSection === 'methodology' && <MethodologySection data={reportData.methodology} />}
+            {activeSection === 'survey_results' && <SurveyResultsSection data={reportData.surveyResults} />}
+            {activeSection === 'damage_analysis' && <DamageAnalysisSection data={reportData.damageAnalysis} />}
+            {activeSection === 'classification' && <ClassificationSection data={reportData.classification} />}
+            {activeSection === 'prediction' && <PredictionSection data={reportData.prediction} />}
+            {activeSection === 'recommendations' && <RecommendationsSection data={reportData.recommendations} />}
+            {activeSection === 'cost_estimate' && <CostEstimateSection data={reportData.costEstimate} />}
+            {activeSection === 'rab' && <RABSection data={reportData.rab} />}
+            {activeSection === 'ai_comparison' && <AIComparisonSection data={reportData.aiComparison} />}
+            {activeSection === 'conclusion' && <ConclusionSection data={reportData.conclusion} />}
+            {activeSection === 'follow_up' && <FollowUpSection data={reportData.followUp} />}
+            {activeSection === 'appendix' && <AppendixSection data={reportData.appendix} />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Report Section Components
+function CoverSection({ data }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+      <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 40 }}>KEMENTERIAN PEKERJAAN UMUM DAN PERUMAHAN RAKYAT</div>
+      <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>LAPORAN PENILAIAN KERUSAKAN BANGUNAN GEDUNG</div>
+      <div style={{ width: 100, height: 4, background: 'var(--accent-primary)', margin: '20px auto' }} />
+      <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--accent-secondary)', marginBottom: 40 }}>
+        {data.namaBangunan}
+      </div>
+      <div style={{ fontSize: 14, marginBottom: 10 }}>{data.namaSekolah}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 40 }}>{data.lokasi}</div>
+      <div style={{ marginTop: 60, fontSize: 12 }}>
+        <div>Tahun Penilaian: {data.tahunPenilaian}</div>
+        <div style={{ marginTop: 10 }}>Tim Teknis: {data.timTeknis}</div>
+        <div style={{ marginTop: 10 }}>Tanggal Survey: {data.tanggalSurvey}</div>
+      </div>
+    </div>
+  );
+}
+
+function ApprovalSection({ data, survey }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ textAlign: 'center', marginBottom: 30 }}>LEMBAR PENGESAHAN</h3>
+      <table style={{ width: '100%', marginBottom: 30 }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '10px 0', width: 200 }}>Ketua Tim</td>
+            <td>: {data.ketuaTim}</td>
+          </tr>
+          <tr>
+            <td style={{ padding: '10px 0' }}>Verifikator</td>
+            <td>: {data.verifikator}</td>
+          </tr>
+          <tr>
+            <td style={{ padding: '10px 0' }}>Approver</td>
+            <td>: {data.approver}</td>
+          </tr>
+          <tr>
+            <td style={{ padding: '10px 0' }}>Tanggal</td>
+            <td>: {data.tanggal}</td>
+          </tr>
+        </tbody>
+      </table>
+      {data.hasTTD && (
+        <div style={{ marginTop: 30, padding: 20, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>✓ Tanda Tangan Elektronik (TTE) Tersedia</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExecutiveSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>RINGKASAN EKSEKUTIF</h3>
+      <div style={{ display: 'grid', gap: 20 }}>
+        <div style={{ padding: 20, background: 'var(--bg-elevated)', borderRadius: 8, borderLeft: `4px solid ${data.isCritical ? 'var(--status-berat)' : 'var(--status-ringan)'}` }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>KONDISI UMUM</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: data.isCritical ? 'var(--status-berat)' : 'var(--text-primary)' }}>
+            {data.kondisiUmum}
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>PERSENTASE KERUSAKAN</div>
+            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--accent-secondary)' }}>
+              {data.persentaseKerusakan}%
+            </div>
+          </div>
+          <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>KATEGORI</div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: data.isCritical ? 'var(--status-berat)' : 'var(--status-ringan)' }}>
+              {data.kategori}
+            </div>
+          </div>
+          <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>ESTIMASI BIAYA</div>
+            <div style={{ fontSize: 16, fontWeight: 600, fontFamily: 'var(--mono)', color: 'var(--status-ringan)' }}>
+              {data.estimasiBiayaFormatted}
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 10 }}>REKOMENDASI UTAMA:</div>
+          <ul style={{ paddingLeft: 20, lineHeight: 1.8 }}>
+            {data.rekomendasiUtama.map((rec, i) => (
+              <li key={i} style={{ fontSize: 13 }}>{rec}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IntroductionSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>1. PENDAHULUAN</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>1.1 Latar Belakang</h4>
+      <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-secondary)' }}>{data.latarBelakang}</p>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>1.2 Maksud dan Tujuan</h4>
+      <ul style={{ paddingLeft: 20, lineHeight: 1.8 }}>
+        {data.maksudTujuan.map((item, i) => (
+          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item}</li>
+        ))}
+      </ul>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>1.3 Ruang Lingkup</h4>
+      <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-secondary)' }}>{data.ruangLingkup}</p>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>1.4 Dasar Hukum dan Standar</h4>
+      <ul style={{ paddingLeft: 20, lineHeight: 1.8 }}>
+        {data.dasarHukum.map((item, i) => (
+          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function BuildingDataSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>2. DATA UMUM BANGUNAN</h3>
+      <table className="assessment-table">
+        <tbody>
+          {[
+            ['Nama Bangunan', data.namaBangunan],
+            ['Fungsi Bangunan', data.fungsiBangunan],
+            ['Jumlah Lantai', data.jumlahLantai],
+            ['Luas Bangunan', data.luasBangunan],
+            ['Tahun Dibangun', data.tahunDibangun],
+            ['Struktur Utama', data.strukturUtama],
+            ['Sistem Utilitas', data.sistemUtilitas],
+            ['NPSN', data.npsn],
+            ['Alamat', data.alamat],
+            ['Koordinat', data.koordinat]
+          ].map(([label, value], i) => (
+            <tr key={i}>
+              <td style={{ width: 200, fontWeight: 500 }}>{label}</td>
+              <td>{value || '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MethodologySection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>3. METODOLOGI</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>3.1 Metode Survey</h4>
+      <ul style={{ paddingLeft: 20, lineHeight: 1.8 }}>
+        {data.metodeSurvey.map((item, i) => (
+          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item}</li>
+        ))}
+      </ul>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>3.2 Metode Analisis</h4>
+      <ul style={{ paddingLeft: 20, lineHeight: 1.8 }}>
+        {data.metodeAnalisis.map((item, i) => (
+          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item}</li>
+        ))}
+      </ul>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>3.3 Penggunaan AI</h4>
+      <ul style={{ paddingLeft: 20, lineHeight: 1.8 }}>
+        {data.penggunaanAI.map((item, i) => (
+          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SurveyResultsSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>4. HASIL SURVEY LAPANGAN</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>4.1 Rekapitulasi Komponen</h4>
+      <div className="table-wrap">
+        <table className="assessment-table">
+          <thead>
+            <tr>
+              <th>Komponen</th>
+              <th>Volume Total</th>
+              <th>Volume Rusak</th>
+              <th>Satuan</th>
+              <th>Klasifikasi</th>
+              <th>Persen (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.rekapitulasiKomponen.map((item, i) => (
+              <tr key={i}>
+                <td>{item.nama}</td>
+                <td className="numeric">{item.volumeTotal}</td>
+                <td className="numeric">{item.volumeRusak}</td>
+                <td>{item.satuan}</td>
+                <td>
+                  <span className={`badge badge-${item.klasifikasi.toLowerCase().replace(/\s/g, '-')}`}>
+                    {item.klasifikasi}
+                  </span>
+                </td>
+                <td className="numeric percent">{item.persenKerusakan}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      <h4 style={{ fontSize: 14, margin: '30px 0 10px' }}>4.2 Dokumentasi Kerusakan</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+        {data.dokumentasiFoto.map((foto, i) => (
+          <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: 8, overflow: 'hidden' }}>
+            <img src={foto.url} alt={foto.komponen} style={{ width: '100%', height: 150, objectFit: 'cover' }} />
+            <div style={{ padding: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-secondary)' }}>{foto.komponen}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{foto.deskripsi}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DamageAnalysisSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>5. ANALISIS KERUSAKAN</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>5.1 Identifikasi Kerusakan</h4>
+      <table className="assessment-table">
+        <thead>
+          <tr>
+            <th>Komponen</th>
+            <th>Jenis Kerusakan</th>
+            <th>Lokasi</th>
+            <th>Pola</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.identifikasiKerusakan.map((item, i) => (
+            <tr key={i}>
+              <td>{item.komponen}</td>
+              <td>{item.jenisKerusakan}</td>
+              <td>{item.lokasi}</td>
+              <td>
+                <span className={`badge badge-${item.pola === 'Kritis' ? 'berat' : 'ringan'}`}>
+                  {item.pola}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      <h4 style={{ fontSize: 14, margin: '30px 0 10px' }}>5.2 Analisis Penyebab</h4>
+      <ul style={{ paddingLeft: 20, lineHeight: 1.8 }}>
+        {data.analisisPenyebab.map((item, i) => (
+          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{item}</li>
+        ))}
+      </ul>
+      
+      <h4 style={{ fontSize: 14, margin: '30px 0 10px' }}>5.4 Penilaian Risiko</h4>
+      <table className="assessment-table">
+        <thead>
+          <tr>
+            <th>Komponen</th>
+            <th>Risiko</th>
+            <th>Dampak</th>
+            <th>Prioritas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.penilaianRisiko.map((item, i) => (
+            <tr key={i}>
+              <td>{item.komponen}</td>
+              <td>
+                <span className={`badge badge-${item.risiko === 'Kritis' ? 'berat' : item.risiko === 'Tinggi' ? 'sedang' : 'ringan'}`}>
+                  {item.risiko}
+                </span>
+              </td>
+              <td>{item.dampak}</td>
+              <td className="numeric">{item.prioritas}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ClassificationSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>6. VALIDASI KLASIFIKASI KERUSAKAN</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>Skala Klasifikasi</h4>
+      <table className="assessment-table">
+        <thead>
+          <tr>
+            <th>Nilai</th>
+            <th>Tingkat Kerusakan</th>
+            <th>Range</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.skala.map((item, i) => (
+            <tr key={i}>
+              <td className="numeric">{item.nilai}</td>
+              <td>{item.label}</td>
+              <td>{item.range}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      <h4 style={{ fontSize: 14, margin: '30px 0 10px' }}>Justifikasi Teknis</h4>
+      <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-secondary)', padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+        {data.justifikasiTeknis}
+      </p>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>Koreksi Hasil AI</h4>
+      <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-secondary)' }}>{data.koreksiAI}</p>
+    </div>
+  );
+}
+
+function PredictionSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>7. ANALISIS PREDIKSI (FORWARD ANALYSIS)</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>Proyeksi Kerusakan</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+        {[
+          { label: '6 Bulan', value: data['6_months'] },
+          { label: '1 Tahun', value: data['1_year'] },
+          { label: '3 Tahun', value: data['3_years'] },
+          { label: '5 Tahun', value: data['5_years'] }
+        ].map((item, i) => (
+          <div key={i} style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--mono)', color: item.value > 45 ? 'var(--status-berat)' : 'var(--accent-secondary)' }}>
+              {item.value.toFixed(1)}%
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>Rekomendasi Berdasarkan Prediksi</h4>
+      <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, borderLeft: `4px solid ${data.criticalThreshold === 'SAFE' ? 'var(--status-ringan)' : 'var(--status-berat)'}` }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>
+          {data.recommendedAction === 'IMMEDIATE_REPAIR_REQUIRED' ? '🔴 Perbaikan Segera Diperlukan' :
+           data.recommendedAction === 'PLANNED_MAINTENANCE' ? '🟡 Perencanaan Pemeliharaan' :
+           '🟢 Pemantauan Rutin'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecommendationsSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>8. REKOMENDASI TEKNIS PERBAIKAN</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {data.map((rec, i) => (
+          <div key={i} style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, borderLeft: `4px solid ${rec.includes('SEGERA') ? 'var(--status-berat)' : rec.includes('PENTING') ? 'var(--status-sedang)' : 'var(--status-ringan)'}` }}>
+            <span style={{ fontSize: 13 }}>{rec}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CostEstimateSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>9. ESTIMASI BIAYA (BERDASARKAN PERBUP)</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>Dasar Perhitungan</h4>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
+        Perbup SHS Kabupaten Garut Tahun {PERBUP_SHS_GARUT.tahun}
+      </p>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>Rincian Biaya</h4>
+      <table className="assessment-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Komponen</th>
+            <th>Volume Rusak</th>
+            <th>Volume Perbaikan</th>
+            <th>Satuan</th>
+            <th>Harga Satuan</th>
+            <th>Jumlah</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.items.map((item, i) => (
+            <tr key={i}>
+              <td>{i + 1}</td>
+              <td>{item.komponen}</td>
+              <td className="numeric">{item.volumeRusak}</td>
+              <td className="numeric">{item.volumeRepair}</td>
+              <td>{item.satuan}</td>
+              <td className="numeric">{formatRupiah(item.hargaSatuan)}</td>
+              <td className="numeric">{formatRupiah(item.jumlah)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      <h4 style={{ fontSize: 14, margin: '30px 0 10px' }}>Rekapitulasi</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Subtotal</div>
+          <div style={{ fontSize: 16, fontWeight: 600, fontFamily: 'var(--mono)' }}>{formatRupiah(data.subtotal)}</div>
+        </div>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Overhead (10%)</div>
+          <div style={{ fontSize: 16, fontWeight: 600, fontFamily: 'var(--mono)' }}>{formatRupiah(data.overhead)}</div>
+        </div>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, border: '2px solid var(--accent-primary)' }}>
+          <div style={{ fontSize: 11, color: 'var(--accent-secondary)' }}>TOTAL</div>
+          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--accent-secondary)' }}>{data.totalFormatted}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RABSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>10. RAB (RENCANA ANGGARAN BIAYA)</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>10.1 Pekerjaan Struktur</h4>
+      <table className="assessment-table">
+        <tbody>
+          {data.pekerjaanStruktur.map((item, i) => (
+            <tr key={i}>
+              <td>{item.nama}</td>
+              <td className="numeric">{item.volume}</td>
+              <td>{item.satuan}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>10.2 Pekerjaan Arsitektur</h4>
+      <table className="assessment-table">
+        <tbody>
+          {data.pekerjaanArsitektur.map((item, i) => (
+            <tr key={i}>
+              <td>{item.nama}</td>
+              <td className="numeric">{item.volume}</td>
+              <td>{item.satuan}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>10.3 Grand Total</h4>
+      <div style={{ padding: 20, background: 'var(--bg-elevated)', borderRadius: 8, textAlign: 'center', border: '2px solid var(--accent-primary)' }}>
+        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 8 }}>TOTAL ANGGARAN</div>
+        <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--accent-secondary)' }}>
+          {formatRupiah(data.grandTotal)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIComparisonSection({ data }) {
+  if (!data) {
+    return (
+      <div style={{ padding: 20 }}>
+        <h3 style={{ marginBottom: 20 }}>11. ANALISIS AI VS ANALISIS MANUAL</h3>
+        <div className="empty-state">
+          <p>Tidak ada data analisis AI</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>11. ANALISIS AI VS ANALISIS MANUAL</h3>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 10, color: 'var(--accent-secondary)' }}>🤖 HASIL AI</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{data.hasilAI?.overallAssessment || 'Tidak tersedia'}</div>
+        </div>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 10, color: 'var(--status-ringan)' }}>👷 VALIDASI ENGINEER</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{data.validasiEngineer}</div>
+        </div>
+      </div>
+      
+      <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>TINGKAT KEPERCAYAAN</div>
+        <div style={{ fontSize: 14, fontWeight: 500 }}>{data.tingkatKepercayaan}</div>
+      </div>
+    </div>
+  );
+}
+
+function ConclusionSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>12. KESIMPULAN</h3>
+      <div style={{ display: 'grid', gap: 16 }}>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>KONDISI BANGUNAN</div>
+          <div style={{ fontSize: 18, fontWeight: 600 }}>{data.kondisiBangunan}</div>
+        </div>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>KATEGORI AKHIR</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: data.kategoriAkhir === 'Rusak Berat' ? 'var(--status-berat)' : data.kategoriAkhir === 'Rusak Sedang' ? 'var(--status-sedang)' : 'var(--status-ringan)' }}>
+            {data.kategoriAkhir}
+          </div>
+        </div>
+        <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>TINGKAT RISIKO</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: data.tingkatRisiko === 'Kritis' ? 'var(--status-berat)' : data.tingkatRisiko === 'Tinggi' ? 'var(--status-sedang)' : 'var(--status-ringan)' }}>
+            {data.tingkatRisiko}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FollowUpSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>13. REKOMENDASI TINDAK LANJUT</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {data.map((item, i) => (
+          <div key={i} style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 20 }}>{item.includes('segera') ? '🔴' : item.includes('Monitoring') ? '🟡' : '🟢'}</span>
+            <span style={{ fontSize: 13 }}>{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AppendixSection({ data }) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ marginBottom: 20 }}>14. LAMPIRAN</h3>
+      
+      <h4 style={{ fontSize: 14, margin: '20px 0 10px' }}>Foto Lapangan</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+        {data.fotoLapangan.map((foto, i) => (
+          <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: 8, overflow: 'hidden' }}>
+            <img src={foto.dataUrl || foto.public_url} alt={foto.komponen_nama} style={{ width: '100%', height: 150, objectFit: 'cover' }} />
+            <div style={{ padding: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-secondary)' }}>{foto.komponen_nama}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <h4 style={{ fontSize: 14, margin: '30px 0 10px' }}>Data Survey</h4>
+      <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Survey ID: {data.dataSurvey.survey?.id}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Total Komponen: {data.dataSurvey.komponenList?.length}</div>
+      </div>
+    </div>
+  );
+}
+
+// Export helper functions
+function generatePrintableHTML(reportData) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Laporan Penilaian Kerusakan - ${reportData.cover.namaBangunan}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1 { font-size: 24px; text-align: center; }
+        h2 { font-size: 18px; margin-top: 30px; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        h3 { font-size: 14px; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f5f5f5; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .badge-ringan { background: #d4edda; color: #155724; }
+        .badge-sedang { background: #fff3cd; color: #856404; }
+        .badge-berat { background: #f8d7da; color: #721c24; }
+        .section { page-break-inside: avoid; }
+      </style>
+    </head>
+    <body>
+      <h1>LAPORAN PENILAIAN KERUSAKAN BANGUNAN</h1>
+      <p style="text-align: center; font-size: 20px; font-weight: bold;">${reportData.cover.namaBangunan}</p>
+      <p style="text-align: center;">${reportData.cover.lokasi}</p>
+      <p style="text-align: center;">Tahun: ${reportData.cover.tahunPenilaian}</p>
+      
+      <div class="section">
+        <h2>1. RINGKASAN EKSEKUTIF</h2>
+        <p><strong>Kondisi:</strong> ${reportData.executive.kondisiUmum}</p>
+        <p><strong>Kerusakan Total:</strong> ${reportData.executive.persentaseKerusakan}%</p>
+        <p><strong>Estimasi Biaya:</strong> ${reportData.executive.estimasiBiayaFormatted}</p>
+      </div>
+      
+      <div class="section">
+        <h2>2. DATA BANGUNAN</h2>
+        <table>
+          <tr><td>Nama Bangunan</td><td>${reportData.buildingData.namaBangunan}</td></tr>
+          <tr><td>Fungsi</td><td>${reportData.buildingData.fungsiBangunan}</td></tr>
+          <tr><td>Jumlah Lantai</td><td>${reportData.buildingData.jumlahLantai}</td></tr>
+          <tr><td>Luas</td><td>${reportData.buildingData.luasBangunan}</td></tr>
+        </table>
+      </div>
+      
+      <div class="section">
+        <h2>3. HASIL PENILAIAN</h2>
+        <table>
+          <thead>
+            <tr><th>Komponen</th><th>Volume</th><th>Rusak</th><th>Klasifikasi</th><th>%</th></tr>
+          </thead>
+          <tbody>
+            ${reportData.surveyResults.rekapitulasiKomponen.map(k => `
+              <tr>
+                <td>${k.nama}</td>
+                <td>${k.volumeTotal}</td>
+                <td>${k.volumeRusak}</td>
+                <td><span class="badge badge-${k.klasifikasi.toLowerCase().replace(/\s/g, '-')}">${k.klasifikasi}</span></td>
+                <td>${k.persenKerusakan}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="section">
+        <h2>4. ESTIMASI BIAYA</h2>
+        <p><strong>Total:</strong> ${reportData.executive.estimasiBiayaFormatted}</p>
+      </div>
+      
+      <div class="section">
+        <h2>5. KESIMPULAN</h2>
+        <p>Bangunan ${reportData.conclusion.kondisiBangunan} dengan tingkat risiko ${reportData.conclusion.tingkatRisiko}.</p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+function generateWordHTML(reportData) {
+  return `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <meta charset="utf-8">
+      <title>Laporan Penilaian Kerusakan</title>
+      <style>
+        body { font-family: "Times New Roman", serif; font-size: 12pt; }
+        h1 { font-size: 16pt; text-align: center; }
+        h2 { font-size: 14pt; margin-top: 24pt; }
+        h3 { font-size: 12pt; margin-top: 12pt; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1pt solid black; padding: 5pt; }
+        th { background-color: #f0f0f0; }
+      </style>
+    </head>
+    <body>
+      <h1>LAPORAN PENILAIAN KERUSAKAN BANGUNAN GEDUNG</h1>
+      <h1>${reportData.cover.namaBangunan}</h1>
+      
+      <h2>1. DATA UMUM</h2>
+      <table>
+        <tr><td>Nama Bangunan</td><td>${reportData.cover.namaBangunan}</td></tr>
+        <tr><td>Lokasi</td><td>${reportData.cover.lokasi}</td></tr>
+        <tr><td>Pemilik</td><td>${reportData.cover.pemilik}</td></tr>
+        <tr><td>Tahun Penilaian</td><td>${reportData.cover.tahunPenilaian}</td></tr>
+      </table>
+      
+      <h2>2. RINGKASAN EKSEKUTIF</h2>
+      <p>Kondisi Umum: ${reportData.executive.kondisiUmum}</p>
+      <p>Persentase Kerusakan: ${reportData.executive.persentaseKerusakan}%</p>
+      <p>Kategori: ${reportData.executive.kategori}</p>
+      <p>Estimasi Biaya Perbaikan: ${reportData.executive.estimasiBiayaFormatted}</p>
+      
+      <h2>3. HASIL PENILAIAN</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Komponen</th>
+            <th>Volume Total</th>
+            <th>Volume Rusak</th>
+            <th>Klasifikasi</th>
+            <th>Persentase</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reportData.surveyResults.rekapitulasiKomponen.map((k, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${k.nama}</td>
+              <td>${k.volumeTotal}</td>
+              <td>${k.volumeRusak}</td>
+              <td>${k.klasifikasi}</td>
+              <td>${k.persenKerusakan}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <h2>4. ESTIMASI BIAYA PERBAIKAN</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Komponen</th>
+            <th>Volume Perbaikan</th>
+            <th>Harga Satuan</th>
+            <th>Jumlah</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reportData.costEstimate.items.map((item, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${item.komponen}</td>
+              <td>${item.volumeRepair} ${item.satuan}</td>
+              <td>Rp ${item.hargaSatuan.toLocaleString('id-ID')}</td>
+              <td>Rp ${item.jumlah.toLocaleString('id-ID')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <p><strong>Subtotal:</strong> Rp ${reportData.costEstimate.subtotal.toLocaleString('id-ID')}</p>
+      <p><strong>Overhead (10%):</strong> Rp ${reportData.costEstimate.overhead.toLocaleString('id-ID')}</p>
+      <p><strong>TOTAL:</strong> Rp ${reportData.costEstimate.total.toLocaleString('id-ID')}</p>
+      
+      <h2>5. KESIMPULAN DAN REKOMENDASI</h2>
+      <p><strong>Kesimpulan:</strong> Bangunan dalam kondisi ${reportData.conclusion.kondisiBangunan} dengan tingkat risiko ${reportData.conclusion.tingkatRisiko}.</p>
+      
+      <p><strong>Rekomendasi:</strong></p>
+      <ol>
+        ${reportData.recommendations.map(r => `<li>${r}</li>`).join('')}
+      </ol>
+      
+      <h2>6. TINDAK LANJUT</h2>
+      <ol>
+        ${reportData.followUp.map(f => `<li>${f}</li>`).join('')}
+      </ol>
+    </body>
+    </html>
+  `;
 }
 
 // ============================================================
